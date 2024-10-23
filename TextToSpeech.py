@@ -1,18 +1,21 @@
 from gtts import gTTS
 import pygame
 
-# Converts text to speech using gTTS
-def ConvertTTS(txt, lg = 'en'):
+class TTS:
+    def __int__(self):
+        self.slow = False
 
-    # Inits gTTS and converts
-    MyTTS = gTTS(text=txt, lang=lg, slow=False)
+    # Converts text to speech using gTTS
+    def ConvertTTS(self, txt, lg = 'en'):
 
-    # Saves output to TTS_Audio.mp3
-    MyTTS.save("TTS_Audio.mp3")
+        # Inits gTTS and converts
+        MyTTS = gTTS(text=txt, lang=lg, slow=False)
 
+        # Saves output to TTS_Audio.mp3
+        MyTTS.save("TTS_Audio.mp3")
 
-def PlayTTS():
+    def PlayTTS(self):
 
-    # Plays last converetd TTS file
-    Sound = pygame.mixer.Sound("TTS_Audio.mp3")
-    Sound.play()
+        # Plays last converetd TTS file
+        Sound = pygame.mixer.Sound("TTS_Audio.mp3")
+        Sound.play()
