@@ -1,5 +1,6 @@
 import TextToSpeech as tts
 import pygame
+import time
 
 from ChatReader import ChatReader
 
@@ -33,6 +34,9 @@ while True:
 
     # Runtime Logic
     MyChatReader.UpdateChat()
+
+    # Sleep
+    time.sleep(1)
 
 
 # Quiting
