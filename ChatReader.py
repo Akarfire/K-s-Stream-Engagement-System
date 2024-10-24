@@ -2,7 +2,9 @@ from dataclasses import dataclass
 
 import pytchat
 import socket
-import TextToSpeech as tts
+import select
+import datetime
+import re
 
 @dataclass
 class TwitchAuthData:
@@ -12,8 +14,15 @@ class TwitchAuthData:
     token : str
     channel : str
 
+@dataclass
+class ChatMessage:
+    Source : str
+    Time : str
+    Author: str
+    Message: str
+
 class ChatReader:
-    def __init__(self, use_tts,  in_tts, use_yt, video_url, use_twitch, twitch_auth_data):
+    def __init__(self, use_tts,  in_tts, use_yt, video_url, use_twitch, twitch_auth_data_file):
 
         self.USE_TTS = use_tts
         self.USE_YT = use_yt
@@ -28,14 +37,27 @@ class ChatReader:
         if use_yt:
             self.Chat = pytchat.create(video_id=video_url)
 
-        # Twitch Chat
-        if (use_twitch):
-            self.Socket = socket.socket()
-            self.Socket.connect((twitch_auth_data.server, twitch_auth_data.port))
+        # Twitch Chat Data
+        FileTwitchAuthData = open(twitch_auth_data_file)
+        TwitchAuthDataRead = [str(i) for i in FileTwitchAuthData.readlines()]
 
-            self.Socket.send(f"PASS {twitch_auth_data.token}\n".encode('utf-8'))
-            self.Socket.send(f"NICK {twitch_auth_data.nickname}\n".encode('utf-8'))
-            self.Socket.send(f"JOIN {twitch_auth_data.channel}\n".encode('utf-8'))
+        MyTwitchAuthData = TwitchAuthData(
+            server="irc.chat.twitch.tv",
+            port=6667,
+            nickname=TwitchAuthDataRead[0],
+            token=TwitchAuthDataRead[1],
+            channel=TwitchAuthDataRead[2]
+        )
+
+        # Twitch Chat Connection
+        if (use_twitch):
+            self.TwitchSocket = socket.socket()
+            self.TwitchSocket.connect((MyTwitchAuthData.server, MyTwitchAuthData.port))
+            self.TwitchSocket.setblocking(0)
+
+            self.TwitchSocket.send(f"PASS {MyTwitchAuthData.token}\n".encode('utf-8'))
+            self.TwitchSocket.send(f"NICK {MyTwitchAuthData.nickname}\n".encode('utf-8'))
+            self.TwitchSocket.send(f"JOIN {MyTwitchAuthData.channel}\n".encode('utf-8'))
 
         # TTS
         if use_tts:
@@ -46,23 +68,61 @@ class ChatReader:
         self.BanWordList = [i for w in f.readlines() for i in w.split()]
         f.close()
 
+
     def UpdateChat(self):
         # YT
         if self.USE_YT:
             if self.Chat.is_alive():
                 for c in self.Chat.get().sync_items():
-                    self.OnChatMessageArrived(c)
+                    self.OnChatMessageArrived(self.ParseYTMessage(c))
 
         # Twitch
         if self.USE_TWITCH:
-            resp = self.Socket.recv(2048).decode('utf-8')
+            Ready = select.select([self.TwitchSocket], [], [], 1)
+            if Ready[0]:
+                resp = self.TwitchSocket.recv(2048).decode('utf-8')
+
+                if resp.startswith('PING'):
+                    self.TwitchSocket.send("PONG\n".encode('utf-8'))
+
+                elif len(resp) > 0:
+                    self.OnChatMessageArrived(self.ParseTwitchMessage(resp))
+
+
+    def ParseYTMessage(self, inMessage):
+
+        outMessage = ChatMessage("YT", "", "", "")
+
+        outMessage.Time = inMessage.datetime
+        outMessage.Author = inMessage.author.name
+        outMessage.Message = inMessage.message
+
+        return outMessage
+
+    def ParseTwitchMessage(self, inMessage):
+
+        outMessage = ChatMessage("Twitch", "", "", "")
+        outMessage.Time = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
+
+        msg = inMessage.split("PRIVMSG")
+
+        if len(msg) > 1:
+            username, channel, message = re.search(':(.*)\!.*@.*\.tmi\.twitch\.tv PRIVMSG #(.*) :(.*)', inMessage).groups()
+
+            outMessage.Author = username
+            outMessage.Message = message
+
+            return outMessage
+
+        outMessage.Author = "Twitch"
+        return outMessage
 
 
     def OnChatMessageArrived(self, message):
-        print(f"{message.datetime} - {message.author.name}: {message.message}")
+        print(f"{message.Time} - {message.Author}: {message.Message}")
 
-        if self.USE_TTS:
-            FilteredMessage = self.FilterMessage(message.message)
+        if self.USE_TTS and len(message.Message) > 0:
+            FilteredMessage = self.FilterMessage(message.Message)
             self.ReadTTS.ConvertTTS(FilteredMessage)
             self.ReadTTS.PlayTTS()
 

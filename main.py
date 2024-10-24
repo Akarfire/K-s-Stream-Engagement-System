@@ -16,14 +16,7 @@ clock = pygame.time.Clock()
 MyTTS = tts.TTS()
 
 # Init Chat Reader
-MyTwitchAuthData = TwitchAuthData(
-    server="irc.chat.twitch.tv",
-    port=6667,
-    nickname="",
-    token="",
-    channel=""
-)
-MyChatReader = ChatReader(True, MyTTS, True, "https://www.youtube.com/watch?v=4xDzrJKXOOY&ab_channel=LofiGirl", False, TwitchAuthData)
+MyChatReader = ChatReader(True, MyTTS, False, "https://www.youtube.com/watch?v=jfKfPfyJRdk&ab_channel=LofiGirl", True, "MyTwitchAuthData.txt")
 
 # Main Loop
 while True:
