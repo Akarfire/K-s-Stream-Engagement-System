@@ -1,3 +1,4 @@
+import time
 from dataclasses import dataclass
 
 import pytchat
@@ -35,7 +36,16 @@ class ChatReader:
 
         # YT Chat
         if use_yt:
-            self.Chat = pytchat.create(video_id=video_url)
+            IsYTChatRunning = False
+            while not IsYTChatRunning:
+                try:
+                    self.Chat = pytchat.create(video_id=video_url)
+                    IsYTChatRunning = True
+
+                except:
+                    print("Failed to connect to YT, attempting reconnection in 1 second")
+                    time.sleep(1)
+                    pass
 
         # Twitch Chat Data
         FileTwitchAuthData = open(twitch_auth_data_file)

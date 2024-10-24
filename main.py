@@ -15,8 +15,13 @@ clock = pygame.time.Clock()
 # Init TTS
 MyTTS = tts.TTS()
 
+# Read YT link from file
+YT_Url_File = open("YT_Url.txt")
+YT_Url = YT_Url_File.readline()
+YT_Url_File.close()
+
 # Init Chat Reader
-MyChatReader = ChatReader(True, MyTTS, False, "https://www.youtube.com/watch?v=jfKfPfyJRdk&ab_channel=LofiGirl", True, "MyTwitchAuthData.txt")
+MyChatReader = ChatReader(True, MyTTS, True, YT_Url, True, "MyTwitchAuthData.txt")
 
 # Main Loop
 while True:
