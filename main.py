@@ -2,7 +2,7 @@ import TextToSpeech as tts
 import pygame
 import time
 
-from ChatReader import ChatReader
+from ChatReader import ChatReader, TwitchAuthData
 
 # Init PyGame
 pygame.init()
@@ -16,7 +16,14 @@ clock = pygame.time.Clock()
 MyTTS = tts.TTS()
 
 # Init Chat Reader
-MyChatReader = ChatReader("https://www.youtube.com/watch?v=4xDzrJKXOOY&ab_channel=LofiGirl", MyTTS)
+MyTwitchAuthData = TwitchAuthData(
+    server="irc.chat.twitch.tv",
+    port=6667,
+    nickname="",
+    token="",
+    channel=""
+)
+MyChatReader = ChatReader(True, MyTTS, True, "https://www.youtube.com/watch?v=4xDzrJKXOOY&ab_channel=LofiGirl", False, TwitchAuthData)
 
 # Main Loop
 while True:
