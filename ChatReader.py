@@ -7,6 +7,8 @@ import select
 import datetime
 import re
 
+from profanity_check import predict, predict_prob
+
 @dataclass
 class TwitchAuthData:
     server : str
@@ -63,7 +65,7 @@ class ChatReader:
         if (use_twitch):
             self.TwitchSocket = socket.socket()
             self.TwitchSocket.connect((MyTwitchAuthData.server, MyTwitchAuthData.port))
-            self.TwitchSocket.setblocking(0)
+            self.TwitchSocket.setblocking(False)
 
             self.TwitchSocket.send(f"PASS {MyTwitchAuthData.token}\n".encode('utf-8'))
             self.TwitchSocket.send(f"NICK {MyTwitchAuthData.nickname}\n".encode('utf-8'))
@@ -73,10 +75,8 @@ class ChatReader:
         if use_tts:
             self.ReadTTS = in_tts
 
-        # Filter Setup
-        f = open("BanWords.txt")
-        self.BanWordList = [i for w in f.readlines() for i in w.split()]
-        f.close()
+        # TEMPORARY COMMAND LIST
+        self.CommandList = ["!VOICE!", "!SUS!", "!WOW!", "!CLOCK!", "!TO_BE_CONTINUED!", "!COIN!"]
 
 
     def UpdateChat(self):
@@ -129,24 +129,66 @@ class ChatReader:
 
 
     def OnChatMessageArrived(self, message):
-        print(f"{message.Time} - {message.Author}: {message.Message}")
+        ActualMessage, Commands = self.ScanMessageForCommands(message.Message)
 
-        if self.USE_TTS and len(message.Message) > 0:
-            FilteredMessage = self.FilterMessage(message.Message)
-            self.ReadTTS.ConvertTTS(FilteredMessage)
-            self.ReadTTS.PlayTTS()
+        print(f"{message.Time} - {message.Author}: {ActualMessage}")
+        if len(Commands) > 0:
+            print(Commands)
+
+        # TEMPORARY COMMAND PROCESSING
+        if "!VOICE!" in Commands:
+            self.Command_TTSMessage(ActualMessage)
+
+        if "!SUS!" in Commands:
+            self.Command_PlaySound("SFX/Among Us Impostor.mp3")
+
+        if "!WOW!" in Commands:
+            self.Command_PlaySound("SFX/WOW (OWEN WILSON).mp3")
+
+        if "!CLOCK!" in Commands:
+            self.Command_PlaySound("SFX/CLOCK TICKING.mp3")
+
+        if "!TO_BE_CONTINUED!" in Commands:
+            self.Command_PlaySound("SFX/TO BE CONTINUED.mp3")
+
+        if "!COIN!" in Commands:
+            self.Command_PlaySound("SFX/8bit_CoinPickUp13.wav")
+
 
 
     def FilterMessage(self, message):
-        FILTERED = False
 
-        for ban in self.BanWordList:
-            if ban in message:
-                FILTERED = True
-                break
+        FILTERED = predict([message])[0]
 
         if FILTERED:
             print("Message Filtered!")
             return "FILTERED"
 
         return message
+
+    def ScanMessageForCommands(self, message):
+        Commands = []
+
+        outMessage = message
+
+        if message.count('!') > 1:
+            for i in self.CommandList:
+                if i in outMessage:
+                    Commands.append(i)
+                    outMessage = outMessage.replace(i, '')
+
+        return outMessage, Commands
+
+
+    def Command_TTSMessage(self, message):
+        if self.USE_TTS and len(message) > 0:
+            FilteredMessage = self.FilterMessage(message)
+
+            self.ReadTTS.ConvertTTS(FilteredMessage)
+            self.ReadTTS.PlayTTS()
+
+    def Command_PlaySound(self, sound_file):
+        self.ReadTTS.PlaySound(sound_file)
+
+
+

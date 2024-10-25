@@ -22,10 +22,13 @@ class TTS:
     def PlayTTS(self):
 
         # Plays last converetd TTS file
+        self.PlaySound("TTS_Audio.mp3")
+
+    def PlaySound(self, file):
         try:
-            Sound = pygame.mixer.Sound("TTS_Audio.mp3")
+            Sound = pygame.mixer.Sound(file)
             Sound.play()
 
         except:
-            print("Failed to play TTS sound")
+            print("Failed to play sound")
             pass

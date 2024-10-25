@@ -45,6 +45,9 @@ while True:
 
 
 # Quiting
+if (MyChatReader.USE_TWITCH):
+    MyChatReader.TwitchSocket.close()
+
 pygame.quit()
 
 
