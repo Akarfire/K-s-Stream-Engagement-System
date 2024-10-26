@@ -14,7 +14,7 @@ class TTS:
                 MyTTS = gTTS(text=txt, lang=lg, slow=False)
 
                 # Saves output to TTS_Audio.mp3
-                MyTTS.save("TTS_Audio.mp3")
+                MyTTS.save("TmpFiles/TTS_Audio.mp3")
             except:
                 print("Failed to TTS: ", txt)
                 pass
@@ -22,7 +22,7 @@ class TTS:
     def PlayTTS(self):
 
         # Plays last converetd TTS file
-        self.PlaySound("TTS_Audio.mp3")
+        self.PlaySound("TmpFiles/TTS_Audio.mp3")
 
     def PlaySound(self, file):
         try:
