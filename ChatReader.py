@@ -25,19 +25,18 @@ class ChatMessage:
     Message: str
 
 class ChatReader:
-    def __init__(self, IN_USE_TTS, IN_USE_YT, IN_USE_TWITCH, InTTS, ConfigController):
+    def __init__(self, ConfigController, InTTS):
 
-        self.USE_TTS = IN_USE_TTS
-        self.USE_YT = IN_USE_YT
-        self.USE_TWITCH = IN_USE_TWITCH
+        self.USE_YT = ConfigController.Options["Use_YT"] and ConfigController.YT_DataFound
+        self.USE_TWITCH = ConfigController.Options["Use_Twitch"] and ConfigController.TWITCH_DataFound
 
         # Initial Info Print
         print(
-            f"Using TTS: {IN_USE_TTS}\nUsing YT: {IN_USE_YT}\nUsing Twitch: {IN_USE_TWITCH}\n\n "
+            f"Using YT: {self.USE_YT}\nUsing Twitch: {self.USE_TWITCH}\n\n "
         )
 
         # YT Chat
-        if IN_USE_YT:
+        if self.USE_YT:
             IsYTChatRunning = False
             while not IsYTChatRunning:
                 try:
@@ -51,18 +50,22 @@ class ChatReader:
 
 
         # Twitch Chat Connection
-        if (IN_USE_TWITCH):
-            self.TwitchSocket = socket.socket()
-            self.TwitchSocket.connect((ConfigController.TwitchAuth.server, ConfigController.TwitchAuth.port))
-            self.TwitchSocket.setblocking(False)
+        if (self.USE_TWITCH):
 
-            self.TwitchSocket.send(f"PASS {ConfigController.TwitchAuth.token}\n".encode('utf-8'))
-            self.TwitchSocket.send(f"NICK {ConfigController.TwitchAuth.nickname}\n".encode('utf-8'))
-            self.TwitchSocket.send(f"JOIN {ConfigController.TwitchAuth.channel}\n".encode('utf-8'))
+            try:
+                self.TwitchSocket = socket.socket()
+                self.TwitchSocket.connect((ConfigController.TwitchAuth.server, ConfigController.TwitchAuth.port))
+                self.TwitchSocket.setblocking(False)
+
+                self.TwitchSocket.send(f"PASS {ConfigController.TwitchAuth.token}\n".encode('utf-8'))
+                self.TwitchSocket.send(f"NICK {ConfigController.TwitchAuth.nickname}\n".encode('utf-8'))
+                self.TwitchSocket.send(f"JOIN {ConfigController.TwitchAuth.channel}\n".encode('utf-8'))
+
+            except:
+                print("Failed to connect to TWITCH!")
 
         # TTS
-        if IN_USE_TTS:
-            self.ReadTTS = InTTS
+        self.ReadTTS = InTTS
 
         # TEMPORARY COMMAND LIST
         self.CommandList = ["!VOICE!", "!SUS!", "!WOW!", "!CLOCK!", "!TO_BE_CONTINUED!", "!COIN!"]
@@ -171,7 +174,7 @@ class ChatReader:
 
 
     def Command_TTSMessage(self, Message):
-        if self.USE_TTS and len(Message) > 0:
+        if len(Message) > 0:
             FilteredMessage = self.FilterMessage(Message)
 
             self.ReadTTS.ConvertTTS(FilteredMessage)
