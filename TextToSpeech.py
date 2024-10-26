@@ -2,8 +2,9 @@ from gtts import gTTS
 import pygame
 
 class TTS:
-    def __int__(self):
+    def __init__(self, InConfigController):
         self.slow = False
+        self.LConfigController = InConfigController
 
     # Converts text to speech using gTTS
     def ConvertTTS(self, txt, lg = 'en'):
@@ -22,11 +23,12 @@ class TTS:
     def PlayTTS(self):
 
         # Plays last converetd TTS file
-        self.PlaySound("TmpFiles/TTS_Audio.mp3")
+        self.PlaySound("TmpFiles/TTS_Audio.mp3", self.LConfigController.Options["TTS_Volume"])
 
-    def PlaySound(self, file):
+    def PlaySound(self, file, Volume = 1.0):
         try:
             Sound = pygame.mixer.Sound(file)
+            Sound.set_volume(Volume)
             Sound.play()
 
         except:

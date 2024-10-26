@@ -6,21 +6,22 @@ from Commands import CommandProcessor
 
 import time
 
+from Types import ChatMessage
+
 # Init PyGameWindow
 MyPyGameWindow = PyGameWindow()
 
 # Init Config Controller
 MyConfigController = ConfigController(ConfigFolder="Config")
 
-# Init Command Processor
-MyCommandProcessor = CommandProcessor(MyConfigController)
-print(MyCommandProcessor.ScanMessageForCommands("Hey there, !voi ce!"))
-
 # Init TTS
-MyTTS = tts.TTS()
+MyTTS = tts.TTS(MyConfigController)
+
+# Init Command Processor
+MyCommandProcessor = CommandProcessor(MyConfigController, MyTTS)
 
 # Init Chat Reader
-MyChatReader = ChatReader(MyConfigController, MyTTS)
+MyChatReader = ChatReader(MyConfigController, MyCommandProcessor)
 
 # Main Loop
 while True:
@@ -31,9 +32,10 @@ while True:
 
     # Runtime Logic
     MyChatReader.UpdateChat()
+    MyCommandProcessor.UpdateCommandExecution(0.5)
 
     # Sleep
-    time.sleep(1)
+    time.sleep(0.5)
 
 
 # Quiting

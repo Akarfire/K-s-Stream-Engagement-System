@@ -1,7 +1,6 @@
 from numpy.f2py.auxfuncs import throw_error
 from select import select
-from ChatReader import TwitchAuthData
-from Types import Command
+from Types import Command, TwitchAuthData
 
 class ConfigController:
     def __init__(self, ConfigFolder):
@@ -133,7 +132,7 @@ class ConfigController:
                 while ConfigLines[i] != '#' and i < len(ConfigLines):\
 
                     OptionLine = ConfigLines[i]
-                    if len(OptionLine) > 0 and OptionLine.count(':') == 2:
+                    if len(OptionLine) > 0 and OptionLine.count(':') == 1:
                         self.ProcessOptionLine(OptionLine)
 
                     i += 1
@@ -160,18 +159,21 @@ class ConfigController:
 
 
     def ProcessOptionLine(self, OptionLine):
-        Name, ValueType, Value = OptionLine.replace(' ', '').split(':')
+        Name, Value = OptionLine.replace(' ', '').split(':')
 
-        if ValueType == 'b':
-            self.Options[Name] = Value == "true"
+        if '[b]' in Value:
+            self.Options[Name] = Value.replace('[b]', '') == "true"
 
-        elif ValueType == 'i':
-            self.Options[Name] = int(Value)
+        elif '[i]' in Value:
+            self.Options[Name] = int(Value.replace('[i]', ''))
 
-        elif ValueType == 'f':
-            self.Options[Name] = float(Value)
+        elif '[f]' in Value:
+            self.Options[Name] = float(Value.replace('[f]', ''))
 
-        elif ValueType == 's':
+        elif '[s]' in Value:
+            self.Options[Name] = Value.replace('[s]', '')
+
+        else:
             self.Options[Name] = Value
 
 
@@ -231,13 +233,13 @@ class ConfigController:
             K's Stream Engagement System V0.1\n\
             ---------------------------------\n\
             #Options\n\
-            Use_YT: b: true\n\
-            Use_Twitch: b: true\n\
+            Use_YT: [b]true\n\
+            Use_Twitch: [b]true\n\
             \n\
-            Filter_Tolerance: f: 0.85\n\
+            Filter_Tolerance: [f]0.85\n\
             \n\
-            TTS_Volume: f: 1.0\n\
-            SFX_Volume: f: 1.0\n\
+            TTS_Volume: [f]1.0\n\
+            SFX_Volume: [f]1.0\n\
             #\n\
             \n\
             #Commands\n\
