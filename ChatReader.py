@@ -112,9 +112,9 @@ class ChatReader:
         print(f"{Message.Time} - {Message.Author}: {Message.Message}")
 
         NewMessage = Message
-        NewMessage.Message = self.FilterMessage(Message.Message)
+        NewMessage.Message, WasFiltered = self.FilterMessage(Message.Message)
 
-        self.LCommandProcessor.ScanAndExecuteMessageCommands(NewMessage)
+        self.LCommandProcessor.ScanAndExecuteMessageCommands(NewMessage, WasFiltered)
 
 
     def FilterMessage(self, Message):
@@ -123,9 +123,9 @@ class ChatReader:
 
         if FILTERED:
             print("Message Filtered!")
-            return "FILTERED"
+            return Message, True
 
-        return Message
+        return Message, False
 
 
 

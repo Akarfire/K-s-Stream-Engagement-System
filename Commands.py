@@ -57,10 +57,13 @@ class CommandProcessor:
                     self.QueueTimer = Time
 
 
-    def ScanAndExecuteMessageCommands(self, InChatMessage):
+    def ScanAndExecuteMessageCommands(self, InChatMessage, InWasFiltered):
         Commands, CleanMessage = self.ScanMessageForCommands(InChatMessage.Message)
         NewChatMessage = InChatMessage
         NewChatMessage.Message = CleanMessage
+
+        if InWasFiltered:
+            NewChatMessage.Message = "FILTERED"
 
         Priorities = list(Commands.keys())
         Priorities.sort()
@@ -110,5 +113,10 @@ class CommandProcessor:
         if InQueuedCommand.Command == "VOICE":
             Instructions.Command_TTS(self.TTS, InQueuedCommand.Message)
 
-        else:
-            Instructions.Command_PlaySound(self.TTS, "SFX/" + InQueuedCommand.Command + ".mp3")
+        elif "sfx" in self.Commands[InQueuedCommand.Command].Atr:
+
+            if "file" in self.Commands[InQueuedCommand.Command].Atr:
+                Instructions.Command_PlaySound(self.TTS, "SFX/" + self.Commands[InQueuedCommand.Command].Atr["file"])
+
+            else:
+                Instructions.Command_PlaySound(self.TTS, "SFX/" + InQueuedCommand.Command + ".mp3")

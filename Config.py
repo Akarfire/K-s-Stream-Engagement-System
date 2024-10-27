@@ -10,14 +10,16 @@ class ConfigController:
         self.YT_Url = ""
 
         # Options Map
-        self.Options = \
+        self.DefaultOptions = \
             {
-            "Use_YT" : False,
-            "Use_Twitch" : False,
+            "Use_YT" : True,
+            "Use_Twitch" : True,
             "Filter_Tolerance" : 0.85,
             "TTS_Volume" : 1.0,
             "SFX_Volume" : 1.0,
             }
+
+        self.Options = self.DefaultOptions
 
         self.TWITCH_DataFound = False
         self.YT_DataFound = False
@@ -47,7 +49,7 @@ class ConfigController:
             FileTwitchAuthData = open(Path, 'w')
             FileTwitchAuthData.write(
                 "nickname: \n\
-                token: oauth: \n\
+                token: \n\
                 channel: ".replace('    ', '')
             )
             FileTwitchAuthData.close()
@@ -132,7 +134,7 @@ class ConfigController:
                 while ConfigLines[i] != '#' and i < len(ConfigLines):\
 
                     OptionLine = ConfigLines[i]
-                    if len(OptionLine) > 0 and OptionLine.count(':') == 1:
+                    if len(OptionLine) > 0 and OptionLine.count('=') == 1:
                         self.ProcessOptionLine(OptionLine)
 
                     i += 1
@@ -159,10 +161,10 @@ class ConfigController:
 
 
     def ProcessOptionLine(self, OptionLine):
-        Name, Value = OptionLine.replace(' ', '').split(':')
+        Name, Value = OptionLine.replace(' ', '').split('=')
 
         if '[b]' in Value:
-            self.Options[Name] = Value.replace('[b]', '') == "true"
+            self.Options[Name] = Value.replace('[b]', '').lower() == "true"
 
         elif '[i]' in Value:
             self.Options[Name] = int(Value.replace('[i]', ''))
@@ -206,7 +208,7 @@ class ConfigController:
 
                             # Processing attribute types
                             if "[b]" in atr_value_data:
-                                Atr[atr_name] = atr_value_data.replace('[b]', '') == "true"
+                                Atr[atr_name] = atr_value_data.replace('[b]', '').lower() == "true"
 
                             elif "[i]" in atr_value_data:
                                 Atr[atr_name] = int(atr_value_data.replace('[i]', ''))
@@ -226,24 +228,22 @@ class ConfigController:
     def InitConfigFile(self, Path):
         print("Initializing Config File")
 
+        OptionLines = ""
+        for i in self.DefaultOptions:
+            OptionLines += i + " = " +'[' + type(self.DefaultOptions[i]).__name__[0] + ']' + str(self.DefaultOptions[i]).lower() + "\n"
+
         ConfigFile = open(Path, 'w')
         ConfigFile.write(
-            "\
+            ("\
             <Config>\n\
             K's Stream Engagement System V0.1\n\
             ---------------------------------\n\
-            #Options\n\
-            Use_YT: [b]true\n\
-            Use_Twitch: [b]true\n\
-            \n\
-            Filter_Tolerance: [f]0.85\n\
-            \n\
-            TTS_Volume: [f]1.0\n\
-            SFX_Volume: [f]1.0\n\
+            #Options\n\n" + \
+            OptionLines + "\n\
             #\n\
             \n\
             #Commands\n\
-            #\n".replace('  ', '')
+            #\n").replace('  ', '')
         )
         ConfigFile.close()
 
