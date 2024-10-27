@@ -21,6 +21,8 @@ MyCommandProcessor = CommandProcessor(MyConfigController, MyTTS)
 MyChatReader = ChatReader(MyConfigController, MyCommandProcessor)
 
 # Main Loop
+TimeBetweenFrames = 1.0 / float(MyConfigController.Options["Update_Frequency"])
+
 while True:
     # Updating Pygame window
     if MyPyGameWindow.UpdatePyGameWindow():
@@ -29,10 +31,10 @@ while True:
 
     # Runtime Logic
     MyChatReader.UpdateChat()
-    MyCommandProcessor.UpdateCommandExecution(0.5)
+    MyCommandProcessor.UpdateCommandExecution(TimeBetweenFrames)
 
     # Sleep
-    time.sleep(0.5)
+    time.sleep(TimeBetweenFrames)
 
 
 # Quiting

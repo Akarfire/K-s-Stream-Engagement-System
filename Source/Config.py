@@ -17,6 +17,7 @@ class ConfigController:
             "Filter_Tolerance" : 0.85,
             "TTS_Volume" : 1.0,
             "SFX_Volume" : 1.0,
+            "Update_Frequency" : 2
             }
 
         self.Options = self.DefaultOptions
@@ -198,7 +199,7 @@ class ConfigController:
 
                 if Param == "calls":
                     for call in Values.split(','):
-                        Calls.add(call)
+                        Calls.add(call.upper())
 
                 if Param == "atr":
                     for atr in Values.split(','):
