@@ -1,7 +1,5 @@
-from Types import Command, ChatMessage
-from Config import ConfigController
 import queue
-import CommandInstructions as Instructions
+import Source.CommandInstructions as Instructions
 
 class QueuedCommand:
     def __init__(self, InCommand, InChatMessage):

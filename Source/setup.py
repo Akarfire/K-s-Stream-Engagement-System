@@ -11,5 +11,5 @@ setup(
     version="0.1",
     description="K's TTS for streams and stuff!",
     options={"build_exe": build_exe_options},
-    executables=[Executable("main.py")],
+    executables=[Executable("../main.py")],
 )

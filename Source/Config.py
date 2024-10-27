@@ -1,6 +1,6 @@
 from numpy.f2py.auxfuncs import throw_error
 from select import select
-from Types import Command, TwitchAuthData
+from Source.Types import Command, TwitchAuthData
 
 class ConfigController:
     def __init__(self, ConfigFolder):

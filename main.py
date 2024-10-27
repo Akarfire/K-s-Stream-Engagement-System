@@ -1,10 +1,9 @@
-import TextToSpeech as tts
-from ChatReader import ChatReader
-from PyGameImplementation import PyGameWindow
-from Config import ConfigController
-from Commands import CommandProcessor
+from Source import TextToSpeech as tts
+from Source.ChatReader import ChatReader
+from Source.PyGameImplementation import PyGameWindow
+from Source.Config import ConfigController
+from Source.Commands import CommandProcessor
 import time
-from Types import ChatMessage
 
 # Init PyGameWindow
 MyPyGameWindow = PyGameWindow()

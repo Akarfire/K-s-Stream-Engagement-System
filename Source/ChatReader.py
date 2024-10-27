@@ -7,10 +7,9 @@ import select
 import datetime
 import re
 
-from profanity_check import predict, predict_prob
+from profanity_check import predict_prob
 
-from Types import ChatMessage, TwitchAuthData
-from Commands import CommandProcessor
+from Source.Types import ChatMessage
 
 class ChatReader:
     def __init__(self, InConfigController, InCommandProcessor):
