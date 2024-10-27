@@ -34,6 +34,7 @@ class CommandProcessor:
         if self.QueueTimer > 0 or (not self.CommandQueue.empty()):
 
             self.QueueTimer -= DeltaTime
+            #print("Current Queue Time: ", self.QueueTimer)
 
             if self.QueueTimer <= 0:
                 self.QueueTimer = 0

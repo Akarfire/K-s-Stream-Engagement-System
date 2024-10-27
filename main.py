@@ -3,9 +3,7 @@ from ChatReader import ChatReader
 from PyGameImplementation import PyGameWindow
 from Config import ConfigController
 from Commands import CommandProcessor
-
 import time
-
 from Types import ChatMessage
 
 # Init PyGameWindow
