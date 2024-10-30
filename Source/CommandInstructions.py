@@ -4,5 +4,5 @@ def Command_TTS(InTTS, InChatMessage):
         InTTS.ConvertTTS(InChatMessage.Message)
         InTTS.PlayTTS()
 
-def Command_PlaySound(InTTS, InSoundFile):
-    InTTS.PlaySound(InSoundFile, InTTS.LConfigController.Options["SFX_Volume"])
+def Command_PlaySound(InTTS, InSoundFile, InVolume = 1.0):
+    InTTS.PlaySound(InSoundFile, InTTS.LConfigController.Options["SFX_Volume"] * InVolume)

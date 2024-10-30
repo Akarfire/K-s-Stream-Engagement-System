@@ -1,15 +1,15 @@
 import time
-from dataclasses import dataclass
-
 import pytchat
 import socket
 import select
 import datetime
 import re
 
-from profanity_check import predict_prob
+import threading
 
+from profanity_check import predict_prob
 from Source.Types import ChatMessage
+
 
 class ChatReader:
     def __init__(self, InConfigController, InCommandProcessor):
@@ -57,25 +57,12 @@ class ChatReader:
         # Command Processor
         self.LCommandProcessor = InCommandProcessor
 
+        # Async
+        self.YTFetchThread = threading.Thread(target=AsyncUpdateYT, args=(self,), daemon=True)
+        self.TwitchFetchThread = threading.Thread(target=AsyncUpdateTwitch, args=(self,), daemon=True)
 
-    def UpdateChat(self):
-        # YT
-        if self.USE_YT:
-            if self.Chat.is_alive():
-                for c in self.Chat.get().sync_items():
-                    self.OnChatMessageArrived(self.ParseYTMessage(c))
-
-        # Twitch
-        if self.USE_TWITCH:
-            Ready = select.select([self.TwitchSocket], [], [], 1)
-            if Ready[0]:
-                resp = self.TwitchSocket.recv(2048).decode('utf-8')
-
-                if resp.startswith('PING'):
-                    self.TwitchSocket.send("PONG\n".encode('utf-8'))
-
-                elif len(resp) > 0:
-                    self.OnChatMessageArrived(self.ParseTwitchMessage(resp))
+        self.YTFetchThread.start()
+        self.TwitchFetchThread.start()
 
 
     def ParseYTMessage(self, InMessage):
@@ -128,4 +115,32 @@ class ChatReader:
 
 
 
+# Async method for fetching chat
+def AsyncUpdateYT(InChatReader):
 
+    while True:
+        # YT
+        if InChatReader.USE_YT:
+            if InChatReader.Chat.is_alive():
+                for c in InChatReader.Chat.get().sync_items():
+                    InChatReader.OnChatMessageArrived(InChatReader.ParseYTMessage(c))
+
+        time.sleep(1 / InChatReader.LConfigController.Options["Update_Frequency"])
+
+
+def AsyncUpdateTwitch(InChatReader):
+
+    while True:
+        # Twitch
+        if InChatReader.USE_TWITCH:
+            Ready = select.select([InChatReader.TwitchSocket], [], [], 1)
+            if Ready[0]:
+                resp = InChatReader.TwitchSocket.recv(2048).decode('utf-8')
+
+                if resp.startswith('PING'):
+                    InChatReader.TwitchSocket.send("PONG\n".encode('utf-8'))
+
+                elif len(resp) > 0:
+                    InChatReader.OnChatMessageArrived(InChatReader.ParseTwitchMessage(resp))
+
+        time.sleep(1 / InChatReader.LConfigController.Options["Update_Frequency"])

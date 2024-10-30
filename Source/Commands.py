@@ -114,8 +114,12 @@ class CommandProcessor:
 
         elif "sfx" in self.Commands[InQueuedCommand.Command].Atr:
 
+            Volume = 1.0
+            if "volume" in self.Commands[InQueuedCommand.Command].Atr:
+                Volume = self.Commands[InQueuedCommand.Command].Atr["volume"]
+
             if "file" in self.Commands[InQueuedCommand.Command].Atr:
-                Instructions.Command_PlaySound(self.TTS, "SFX/" + self.Commands[InQueuedCommand.Command].Atr["file"])
+                Instructions.Command_PlaySound(self.TTS, "SFX/" + self.Commands[InQueuedCommand.Command].Atr["file"], Volume)
 
             else:
-                Instructions.Command_PlaySound(self.TTS, "SFX/" + InQueuedCommand.Command + ".mp3")
+                Instructions.Command_PlaySound(self.TTS, "SFX/" + InQueuedCommand.Command + ".mp3", Volume)

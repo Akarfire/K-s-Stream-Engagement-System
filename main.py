@@ -30,7 +30,7 @@ while True:
         exit()
 
     # Runtime Logic
-    MyChatReader.UpdateChat()
+    #MyChatReader.UpdateChat()
     MyCommandProcessor.UpdateCommandExecution(TimeBetweenFrames)
 
     # Sleep
