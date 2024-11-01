@@ -125,7 +125,7 @@ def AsyncUpdateYT(InChatReader):
                 for c in InChatReader.Chat.get().sync_items():
                     InChatReader.OnChatMessageArrived(InChatReader.ParseYTMessage(c))
 
-        time.sleep(1 / InChatReader.LConfigController.Options["Update_Frequency"])
+        time.sleep(1 / InChatReader.LConfigController.Options["Chat_Fetch_Frequency"])
 
 
 def AsyncUpdateTwitch(InChatReader):
@@ -143,4 +143,4 @@ def AsyncUpdateTwitch(InChatReader):
                 elif len(resp) > 0:
                     InChatReader.OnChatMessageArrived(InChatReader.ParseTwitchMessage(resp))
 
-        time.sleep(1 / InChatReader.LConfigController.Options["Update_Frequency"])
+        time.sleep(1 / InChatReader.LConfigController.Options["Chat_Fetch_Frequency"])

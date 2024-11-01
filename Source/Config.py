@@ -1,6 +1,7 @@
 from numpy.f2py.auxfuncs import throw_error
 from select import select
 from Source.Types import Command, TwitchAuthData
+from Source.Commands import AssignCommand
 
 class ConfigController:
     def __init__(self, ConfigFolder):
@@ -17,7 +18,8 @@ class ConfigController:
             "Filter_Tolerance" : 0.85,
             "TTS_Volume" : 1.0,
             "SFX_Volume" : 1.0,
-            "Update_Frequency" : 2
+            "Update_Frequency" : 4,
+            "Chat_Fetch_Frequency" : 4
             }
 
         self.Options = self.DefaultOptions
@@ -223,7 +225,7 @@ class ConfigController:
                         else:
                             Atr[atr] = True
 
-        self.Commands[Name] = Command(Name, Calls, Atr)
+        self.Commands[Name] = AssignCommand(Name, Calls, Atr)
 
 
     def InitConfigFile(self, Path):

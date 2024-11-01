@@ -23,7 +23,7 @@ class TTS:
     def PlayTTS(self):
 
         # Plays last converetd TTS file
-        self.PlaySound("TmpFiles/TTS_Audio.mp3", self.LConfigController.Options["TTS_Volume"])
+        return self.PlaySound("TmpFiles/TTS_Audio.mp3", self.LConfigController.Options["TTS_Volume"])
 
     def PlaySound(self, file, Volume = 1.0):
         try:
@@ -31,6 +31,10 @@ class TTS:
             Sound.set_volume(Volume)
             Sound.play()
 
+            return Sound.get_length()
+
         except:
             print("Failed to play sound")
             pass
+
+

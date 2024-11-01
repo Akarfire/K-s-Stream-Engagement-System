@@ -1,18 +1,34 @@
 import queue
 import Source.CommandInstructions as Instructions
+# Source.Types import Command
 
 class QueuedCommand:
     def __init__(self, InCommand, InChatMessage):
         self.Command = InCommand
         self.Message = InChatMessage
 
+
+def AssignCommand(InName, InCalls, InAtr):
+
+    if "sfx" in InAtr:
+        return Instructions.Command_PlaySound(InName, InCalls, InAtr)
+
+    elif InName == "VOICE":
+        return Instructions.Command_TTS(InName, InCalls, InAtr)
+
+
 class CommandProcessor:
     def __init__(self, InConfigController, InTTS):
 
         # Data initializing
         self.Commands = InConfigController.Commands
+        for c in self.Commands:
+            self.Commands[c].AssignProcessor(self)
+
         self.CommandCalls = {}
         self.CallLengths = set()
+
+        self.LConfigController = InConfigController
 
         for com in self.Commands:
             for call in self.Commands[com].Calls:
@@ -21,7 +37,9 @@ class CommandProcessor:
 
         # Queue
         self.CommandQueue = queue.Queue()
-        self.QueueTimer = 0.0
+        #self.QueueTimer = 0.0
+        self.HasActiveCommand = False
+        self.ActiveCommand = None
 
         # TTS
         self.TTS = InTTS
@@ -29,31 +47,46 @@ class CommandProcessor:
 
     def UpdateCommandExecution(self, DeltaTime):
 
-        if self.QueueTimer > 0 or (not self.CommandQueue.empty()):
+        if not self.HasActiveCommand:
+            if not self.CommandQueue.empty():
+                QCommand = self.CommandQueue.get()
 
-            self.QueueTimer -= DeltaTime
-            #print("Current Queue Time: ", self.QueueTimer)
+                self.ActiveCommand = self.Commands[QCommand.Command]
+                self.ActiveCommand.ExecuteCommand(QCommand.Message)
 
-            if self.QueueTimer <= 0:
-                self.QueueTimer = 0
+                self.HasActiveCommand = True
 
-                if not self.CommandQueue.empty():
-                    QCommand = self.CommandQueue.get()
-                    self.ExecuteCommand(QCommand)
+        else:
+            self.ActiveCommand.Update(DeltaTime)
 
-                    # Calculating waiting time
-                    Time = 0.0
-                    if "time" in self.Commands[QCommand.Command].Atr:
-                        Time = self.Commands[QCommand.Command].Atr["time"]
+        # if self.QueueTimer > 0 or (not self.CommandQueue.empty()):
+        #
+        #     self.QueueTimer -= DeltaTime
+        #     print("Current Queue Time: ", self.QueueTimer)
+        #
+        #     if self.QueueTimer <= 0:
+        #         self.QueueTimer = 0
+        #
+        #         if not self.CommandQueue.empty():
+        #             QCommand = self.CommandQueue.get()
+        #             Time = self.ExecuteCommand(QCommand)
+        #
+        #             # # Calculating waiting time
+        #             # Time = 0.0
+        #             # if "time" in self.Commands[QCommand.Command].Atr:
+        #             #     Time = self.Commands[QCommand.Command].Atr["time"]
+        #             #
+        #             # elif "calc_time_msg_len" in self.Commands[QCommand.Command].Atr:
+        #             #     TimeFactor = 0.1
+        #             #     if "time_fac" in self.Commands[QCommand.Command].Atr:
+        #             #         TimeFactor =self.Commands[QCommand.Command].Atr["time_fac"]
+        #             #
+        #             #     Time = len(QCommand.Message.Message) * TimeFactor
+        #
+        #             self.QueueTimer = Time
 
-                    elif "calc_time_msg_len" in self.Commands[QCommand.Command].Atr:
-                        TimeFactor = 0.1
-                        if "time_fac" in self.Commands[QCommand.Command].Atr:
-                            TimeFactor =self.Commands[QCommand.Command].Atr["time_fac"]
-
-                        Time = len(QCommand.Message.Message) * TimeFactor
-
-                    self.QueueTimer = Time
+    def OnCurrentCommandFinished(self):
+        self.HasActiveCommand = False
 
 
     def ScanAndExecuteMessageCommands(self, InChatMessage, InWasFiltered):
@@ -105,21 +138,23 @@ class CommandProcessor:
 
 
 
-# TEMPORARy
-    def ExecuteCommand(self, InQueuedCommand):
+# # TEMPORARy
+#     def ExecuteCommand(self, InQueuedCommand):
+#
+#         # Instructions aren't here yet, so hard coding goes brrrrrrrrrr
+#         if InQueuedCommand.Command == "VOICE":
+#             return Instructions.Command_TTS(self.TTS, InQueuedCommand.Message)
+#
+#         elif "sfx" in self.Commands[InQueuedCommand.Command].Atr:
+#             Volume = 1.0
+#             if "volume" in self.Commands[InQueuedCommand.Command].Atr:
+#                 Volume = self.Commands[InQueuedCommand.Command].Atr["volume"]
+#
+#             if "file" in self.Commands[InQueuedCommand.Command].Atr:
+#                 return Instructions.fCommand_PlaySound(self.TTS, "SFX/" + self.Commands[InQueuedCommand.Command].Atr["file"], Volume)
+#
+#             else:
+#                 return Instructions.fCommand_PlaySound(self.TTS, "SFX/" + InQueuedCommand.Command + ".mp3", Volume)
+#
+#         return 0.0
 
-        # Instructions aren't here yet, so hard coding goes brrrrrrrrrr
-        if InQueuedCommand.Command == "VOICE":
-            Instructions.Command_TTS(self.TTS, InQueuedCommand.Message)
-
-        elif "sfx" in self.Commands[InQueuedCommand.Command].Atr:
-
-            Volume = 1.0
-            if "volume" in self.Commands[InQueuedCommand.Command].Atr:
-                Volume = self.Commands[InQueuedCommand.Command].Atr["volume"]
-
-            if "file" in self.Commands[InQueuedCommand.Command].Atr:
-                Instructions.Command_PlaySound(self.TTS, "SFX/" + self.Commands[InQueuedCommand.Command].Atr["file"], Volume)
-
-            else:
-                Instructions.Command_PlaySound(self.TTS, "SFX/" + InQueuedCommand.Command + ".mp3", Volume)
