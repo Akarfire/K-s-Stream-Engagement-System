@@ -35,6 +35,6 @@ class TTS:
 
         except:
             print("Failed to play sound")
-            pass
+            return 0
 
 

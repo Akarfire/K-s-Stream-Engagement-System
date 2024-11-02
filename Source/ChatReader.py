@@ -27,7 +27,7 @@ class ChatReader:
             IsYTChatRunning = False
             while not IsYTChatRunning:
                 try:
-                    self.Chat = pytchat.create(video_id=InConfigController.YT_Url)
+                    self.YTChat = pytchat.create(video_id=InConfigController.YT_Url)
                     IsYTChatRunning = True
 
                 except:
@@ -65,6 +65,11 @@ class ChatReader:
         self.TwitchFetchThread.start()
 
 
+    def __del__(self):
+        self.TwitchSocket.close()
+        self.YTChat.terminate()
+
+
     def ParseYTMessage(self, InMessage):
 
         outMessage = ChatMessage("YT", "", "", "")
@@ -74,6 +79,7 @@ class ChatReader:
         outMessage.Message = InMessage.message
 
         return outMessage
+
 
     def ParseTwitchMessage(self, InMessage):
 
@@ -121,9 +127,12 @@ def AsyncUpdateYT(InChatReader):
     while True:
         # YT
         if InChatReader.USE_YT:
-            if InChatReader.Chat.is_alive():
-                for c in InChatReader.Chat.get().sync_items():
+            if InChatReader.YTChat.is_alive():
+                for c in InChatReader.YTChat.get().sync_items():
                     InChatReader.OnChatMessageArrived(InChatReader.ParseYTMessage(c))
+
+            else:
+                print("YT chat's down!")
 
         time.sleep(1 / InChatReader.LConfigController.Options["Chat_Fetch_Frequency"])
 

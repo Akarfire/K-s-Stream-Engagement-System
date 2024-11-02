@@ -8,16 +8,29 @@ from Source.Types import ObsAuthData
 class ObsInterface:
     def __init__(self, InConfigController):
 
+        # Data
         self.LConfigController = InConfigController
-        self.AuthData = ObsAuthData(
-            "localhost",
-            4455,
-            "hehe"
-        )
+        self.AuthData = InConfigController.ObsAuth
 
-        url = "ws://{}:{}".format(self.AuthData.host, self.AuthData.port)
-        self.ObsWS = websocket.WebSocket()
-        self.ObsWS.connect(url)
+        self.Enabled = InConfigController.OBS_DataFound and InConfigController.Options["Use_OBS"]
+
+        if self.Enabled:
+
+            url = "ws://{}:{}".format(self.AuthData.host, self.AuthData.port)
+            self.ObsWS = websocket.WebSocket()
+            self.ObsWS.connect(url)
+
+            # Authentication
+            self.Authenticate()
+
+        else:
+            print("OBS integration disabled")
+
+
+    def __del__(self):
+        pass
+        #if self.Enabled:
+            #self.ObsWS.close()
 
 
     def GenerateAuthString(self, Challenge, Salt):
@@ -27,10 +40,14 @@ class ObsInterface:
 
         return Auth
 
+
     def Authenticate(self):
 
+        # Hello message
         HelloMsg = self.ObsWS.recv()
         Res = json.loads(HelloMsg)
+
+        # Identify message
         Auth = self.GenerateAuthString(Res['d']["authentication"]["challenge"], Res['d']["authentication"]["salt"])
 
         Payload = {
@@ -38,9 +55,80 @@ class ObsInterface:
               "d": {
                 "rpcVersion": 1,
                 "authentication": Auth,
-                "eventSubscriptions": 1000
+                "eventSubscriptions": 0
               }
             }
+
+        # Identified message
+        self.ObsWS.send(json.dumps(Payload))
+        Response = self.ObsWS.recv()
+        print(json.loads(Response))
+
+
+    def SendRequest(self, RequestType, RequestID, RequestData = {}):
+
+        if self.Enabled:
+            Payload = {
+                "op": 6,
+                "d": {
+                    "requestType": RequestType,
+                    "requestId": RequestID,
+                    "requestData": RequestData
+                }
+            }
+
+            self.ObsWS.send(json.dumps(Payload))
+            Response  = self.ObsWS.recv()
+
+            return json.loads(Response)
+
+        else:
+            return "OBS Interface Disabled"
+
+
+    def SwitchScene(self, SceneName):
+
+        Response = self.SendRequest("SetCurrentProgramScene", "SetScene", {"sceneName" : SceneName})
+        #print(Response)
+
+
+    def GetItemID(self, Scene, Item):
+
+        Response = self.SendRequest("GetSceneItemId", "GetItemID", {
+            "sceneName": Scene,
+            "sourceName": Item
+        })
+
+        return Response["d"]["responseData"]["sceneItemId"]
+
+
+    def SetItemEnabledByID(self, Scene, ItemID, NewEnabled):
+
+        Response = self.SendRequest("SetSceneItemEnabled", "SetItemEnabled", {
+            "sceneName": Scene,
+            "sceneItemId": ItemID,
+            "sceneItemEnabled": NewEnabled
+        })
+
+        #print(Response)
+
+
+    def SetItemEnabledByName(self, Scene, Item, NewEnabled):
+        self.SetItemEnabledByID(Scene, self.GetItemID(Scene, Item), NewEnabled)
+
+
+    def SetFilterEnabled(self, Source, Filter, NewEnabled):
+        Response = self.SendRequest("SetSourceFilterEnabled", "SetFilterEnabled", {
+            "sourceName" : Source,
+            "filterName" : Filter,
+            "filterEnabled" : NewEnabled
+        })
+
+        #print(Response)
+
+
+
+
 
 
 

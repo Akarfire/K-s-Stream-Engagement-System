@@ -1,6 +1,6 @@
 from numpy.f2py.auxfuncs import throw_error
 from select import select
-from Source.Types import Command, TwitchAuthData
+from Source.Types import Command, TwitchAuthData, ObsAuthData
 from Source.Commands import AssignCommand
 
 class ConfigController:
@@ -9,12 +9,14 @@ class ConfigController:
         # Default Values
         self.TwitchAuth = TwitchAuthData("", 0, "", "", "")
         self.YT_Url = ""
+        self.ObsAuth = ObsAuthData("localhost", 4455, "password")
 
         # Options Map
         self.DefaultOptions = \
             {
             "Use_YT" : True,
             "Use_Twitch" : True,
+            "Use_OBS" : True,
             "Filter_Tolerance" : 0.85,
             "TTS_Volume" : 1.0,
             "SFX_Volume" : 1.0,
@@ -26,6 +28,7 @@ class ConfigController:
 
         self.TWITCH_DataFound = False
         self.YT_DataFound = False
+        self.OBS_DataFound = False
 
         # Command Map:
         self.Commands = {}
@@ -34,10 +37,14 @@ class ConfigController:
         self.ReadTwitchData(ConfigFolder + "/TWITCH_AUTH.txt")
 
         # YT Chat Data
-        self.ReadYTCData(ConfigFolder + "/YT_URL.txt")
+        self.ReadYTData(ConfigFolder + "/YT_URL.txt")
+
+        # OBS Auth Data
+        self.ReadObsData(ConfigFolder + "/OBS_AUTH.txt")
 
         # Config Data
         self.ReadConfigData(ConfigFolder + "/Config.txt")
+
 
 
     def ReadTwitchData(self, Path):
@@ -79,8 +86,7 @@ class ConfigController:
             print("\nTwitch Data cannot be read, pls check the config file!\n")
 
 
-
-    def ReadYTCData(self, Path):
+    def ReadYTData(self, Path):
         print("Reading YT data at: ", Path)
         try:
             YtUrlFile = open(Path)
@@ -95,7 +101,6 @@ class ConfigController:
             DataFound = False
             pass
 
-
         if DataFound:
             YTData = YtUrlFile.readlines()
             if len(YTData) > 0:
@@ -108,6 +113,38 @@ class ConfigController:
         else:
             print("\nYouTube Data cannot be read, pls check the config file!\n")
 
+
+    def ReadObsData(self, Path):
+        print("Reading OBS data at: ", Path)
+        try:
+            ObsDataFile = open(Path)
+            DataFound = True
+
+        except:
+            print("'", Path, "'", " doesn't exist, creating now")
+            ObsDataFile = open(Path, 'w')
+            ObsDataFile.write("host: localhost\nport: 4455\npassword: ")
+            ObsDataFile.close()
+
+            DataFound = False
+            pass
+
+        if DataFound:
+            ObsAuthDataLines = ObsDataFile.readlines()
+
+            if len(ObsAuthDataLines) >= 3:
+
+                try:
+                    self.ObsAuth.host = ObsAuthDataLines[0].replace("host: ", '')
+                    self.ObsAuth.port = int(ObsAuthDataLines[1].replace("port: ", ''))
+                    self.ObsAuth.password = ObsAuthDataLines[2].replace("password: ", '')
+
+                    self.OBS_DataFound = True
+
+                except:
+                    print("Invalid Obs Auth Data")
+                    self.OBS_DataFound = False
+                    pass
 
 
     def ReadConfigData(self, Path):
