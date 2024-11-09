@@ -11,11 +11,13 @@ class Command_TTS(Command):
             self.Timer = self.Processor.TTS.PlayTTS() + 0.5
 
             # GLady Avatar
-            self.Processor.LObsInterface.SetFilterEnabled("GLadyAvatar", "Silent", False)
+            if self.Processor.LObsInterface.Enabled:
+                self.Processor.LObsInterface.SetFilterEnabled("GLadyAvatar", "Silent", False)
 
     def FinishExecution(self):
 
-        self.Processor.LObsInterface.SetFilterEnabled("GLadyAvatar", "Silent", True)
+        if self.Processor.LObsInterface.Enabled:
+            self.Processor.LObsInterface.SetFilterEnabled("GLadyAvatar", "Silent", True)
         super().FinishExecution()
 
 
@@ -37,13 +39,17 @@ class Command_PlaySound(Command):
         if "time" in self.Atr:
             self.Timer = self.Atr["time"]
 
-        if "obs_gif" in self.Atr:
-            self.GifName = self.Name
+        if "time_inc" in self.Atr:
+            self.Timer += self.Atr["time_inc"]
 
-            if "obs_gif_name" in self.Atr:
-                self.GifName = self.Atr["obs_gif_name"]
+        if self.Processor.LObsInterface.Enabled:
+            if "obs_gif" in self.Atr:
+                self.GifName = self.Name
 
-            self.Processor.LObsInterface.SetItemEnabledByName("GIFscene", self.GifName, True)
+                if "obs_gif_name" in self.Atr:
+                    self.GifName = self.Atr["obs_gif_name"]
+
+                self.Processor.LObsInterface.SetItemEnabledByName("GIFscene", self.GifName, True)
 
 
     def FinishExecution(self):

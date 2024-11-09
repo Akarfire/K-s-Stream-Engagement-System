@@ -1,4 +1,6 @@
 import time
+from queue import Queue
+
 import pytchat
 import socket
 import select
@@ -12,14 +14,18 @@ from Source.Types import ChatMessage
 
 
 class ChatReader:
-    def __init__(self, InConfigController, InCommandProcessor):
+    def __init__(self, InConfigController, InCommandProcessor, InLogger):
 
         self.USE_YT = InConfigController.Options["Use_YT"] and InConfigController.YT_DataFound
         self.USE_TWITCH = InConfigController.Options["Use_Twitch"] and InConfigController.TWITCH_DataFound
 
+        # Logger
+        self.LLogger = InLogger
+        self.LLogger.NewLogSegment("Init Chat Reader")
+
         # Initial Info Print
-        print(
-            f"Using YT: {self.USE_YT}\nUsing Twitch: {self.USE_TWITCH}\n\n "
+        self.LLogger.LogStatus(
+            f"\nUsing YT: {self.USE_YT}\nUsing Twitch: {self.USE_TWITCH}\n\n "
         )
 
         # YT Chat
@@ -30,14 +36,14 @@ class ChatReader:
                     self.YTChat = pytchat.create(video_id=InConfigController.YT_Url)
                     IsYTChatRunning = True
 
-                except:
-                    print("Failed to connect to YT, attempting reconnection in 1 second")
+                except Exception as e:
+                    self.LLogger.LogError("Failed to connect to YT, attempting reconnection in 1 second: " + str(e))
                     time.sleep(1)
                     pass
 
 
         # Twitch Chat Connection
-        if (self.USE_TWITCH):
+        if self.USE_TWITCH:
 
             try:
                 self.TwitchSocket = socket.socket()
@@ -49,7 +55,7 @@ class ChatReader:
                 self.TwitchSocket.send(f"JOIN {InConfigController.TwitchAuth.channel}\n".encode('utf-8'))
 
             except:
-                print("Failed to connect to TWITCH!")
+                self.LLogger.LogError("Failed to connect to TWITCH!")
 
         # Config Controller
         self.LConfigController = InConfigController
@@ -64,10 +70,19 @@ class ChatReader:
         self.YTFetchThread.start()
         self.TwitchFetchThread.start()
 
+        # Message Queue
+        self.MessageQueue = Queue()
+
 
     def __del__(self):
         self.TwitchSocket.close()
         self.YTChat.terminate()
+
+
+    def MainThreadUpdate(self):
+
+        if not self.MessageQueue.empty():
+            self.OnChatMessageArrived(self.MessageQueue.get())
 
 
     def ParseYTMessage(self, InMessage):
@@ -101,7 +116,7 @@ class ChatReader:
 
 
     def OnChatMessageArrived(self, Message):
-        print(f"{Message.Time} - {Message.Author}: {Message.Message}")
+        self.LLogger.LogMessage(Message)
 
         NewMessage = Message
         NewMessage.Message, WasFiltered = self.FilterMessage(Message.Message)
@@ -114,7 +129,7 @@ class ChatReader:
         FILTERED = predict_prob([Message])[0] > self.LConfigController.Options["Filter_Tolerance"]
 
         if FILTERED:
-            print("Message Filtered!")
+            self.LLogger.LogStatus("Message Filtered!")
             return Message, True
 
         return Message, False
@@ -129,10 +144,10 @@ def AsyncUpdateYT(InChatReader):
         if InChatReader.USE_YT:
             if InChatReader.YTChat.is_alive():
                 for c in InChatReader.YTChat.get().sync_items():
-                    InChatReader.OnChatMessageArrived(InChatReader.ParseYTMessage(c))
+                    InChatReader.MessageQueue.put(InChatReader.ParseYTMessage(c))
 
             else:
-                print("YT chat's down!")
+                InChatReader.LLogger.LogError("YT chat's down!")
 
         time.sleep(1 / InChatReader.LConfigController.Options["Chat_Fetch_Frequency"])
 
@@ -150,6 +165,6 @@ def AsyncUpdateTwitch(InChatReader):
                     InChatReader.TwitchSocket.send("PONG\n".encode('utf-8'))
 
                 elif len(resp) > 0:
-                    InChatReader.OnChatMessageArrived(InChatReader.ParseTwitchMessage(resp))
+                    InChatReader.MessageQueue.put(InChatReader.ParseTwitchMessage(resp))
 
         time.sleep(1 / InChatReader.LConfigController.Options["Chat_Fetch_Frequency"])

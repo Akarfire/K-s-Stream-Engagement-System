@@ -6,11 +6,14 @@ import json
 from Source.Types import ObsAuthData
 
 class ObsInterface:
-    def __init__(self, InConfigController):
+    def __init__(self, InConfigController, InLogger):
 
         # Data
         self.LConfigController = InConfigController
         self.AuthData = InConfigController.ObsAuth
+
+        self.LLogger = InLogger
+        self.LLogger.NewLogSegment("Init OBS Interface")
 
         self.Enabled = InConfigController.OBS_DataFound and InConfigController.Options["Use_OBS"]
 
@@ -18,13 +21,20 @@ class ObsInterface:
 
             url = "ws://{}:{}".format(self.AuthData.host, self.AuthData.port)
             self.ObsWS = websocket.WebSocket()
-            self.ObsWS.connect(url)
 
-            # Authentication
-            self.Authenticate()
+            try:
+                self.ObsWS.connect(url)
+
+                # Authentication
+                self.Authenticate()
+
+            except Exception as e:
+                self.LLogger.LogError("Failed to connect to OBS: " + str(e))
+                self.Enabled = False
+                pass
 
         else:
-            print("OBS integration disabled")
+            self.LLogger.LogStatus("OBS integration disabled")
 
 
     def __del__(self):
@@ -62,7 +72,7 @@ class ObsInterface:
         # Identified message
         self.ObsWS.send(json.dumps(Payload))
         Response = self.ObsWS.recv()
-        print(json.loads(Response))
+        self.LLogger.LogObsResponse(json.loads(Response))
 
 
     def SendRequest(self, RequestType, RequestID, RequestData = {}):
@@ -89,7 +99,7 @@ class ObsInterface:
     def SwitchScene(self, SceneName):
 
         Response = self.SendRequest("SetCurrentProgramScene", "SetScene", {"sceneName" : SceneName})
-        #print(Response)
+        self.LLogger.LogObsResponse(Response)
 
 
     def GetItemID(self, Scene, Item):
@@ -110,21 +120,23 @@ class ObsInterface:
             "sceneItemEnabled": NewEnabled
         })
 
-        #print(Response)
+        self.LLogger.LogObsResponse(Response)
 
 
     def SetItemEnabledByName(self, Scene, Item, NewEnabled):
+
         self.SetItemEnabledByID(Scene, self.GetItemID(Scene, Item), NewEnabled)
 
 
     def SetFilterEnabled(self, Source, Filter, NewEnabled):
+
         Response = self.SendRequest("SetSourceFilterEnabled", "SetFilterEnabled", {
             "sourceName" : Source,
             "filterName" : Filter,
             "filterEnabled" : NewEnabled
         })
 
-        #print(Response)
+        self.LLogger.LogObsResponse(Response)
 
 
 

@@ -19,7 +19,7 @@ def AssignCommand(InName, InCalls, InAtr):
 # Actual Class
 
 class CommandProcessor:
-    def __init__(self, InConfigController, InTTS, InObsInterface):
+    def __init__(self, InConfigController, InTTS, InObsInterface, InLogger):
 
         # Data initializing
         self.Commands = InConfigController.Commands
@@ -33,6 +33,9 @@ class CommandProcessor:
         self.LConfigController = InConfigController
         self.TTS = InTTS
         self.LObsInterface = InObsInterface
+        self.LLogger = InLogger
+
+        self.LLogger.NewLogSegment("Init Command Processor")
 
         # Processing Commands
         for com in self.Commands:
@@ -51,11 +54,15 @@ class CommandProcessor:
         if not self.HasActiveCommand:
             if not self.CommandQueue.empty():
                 QCommand = self.CommandQueue.get()
+                self.LLogger.LogStatus(
+                    "COMMAND: Executing Queued command: " + QCommand.Command + " - Queue Len: " + str(self.CommandQueue.qsize()),
+                    False)
 
                 self.ActiveCommand = self.Commands[QCommand.Command]
                 self.ActiveCommand.ExecuteCommand(QCommand.Message)
 
                 self.HasActiveCommand = True
+
 
         else:
             self.ActiveCommand.Update(DeltaTime)
@@ -63,6 +70,7 @@ class CommandProcessor:
 
     def OnCurrentCommandFinished(self):
         self.HasActiveCommand = False
+        self.LLogger.LogStatus("COMMAND: Finished Command Execution", False)
 
 
     def ScanAndExecuteMessageCommands(self, InChatMessage, InWasFiltered):

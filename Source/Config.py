@@ -4,7 +4,10 @@ from Source.Types import Command, TwitchAuthData, ObsAuthData
 from Source.Commands import AssignCommand
 
 class ConfigController:
-    def __init__(self, ConfigFolder):
+    def __init__(self, ConfigFolder, InLogger):
+
+        self.LLogger = InLogger
+        self.LLogger.NewLogSegment("Loading Config Data")
 
         # Default Values
         self.TwitchAuth = TwitchAuthData("", 0, "", "", "")
@@ -46,16 +49,15 @@ class ConfigController:
         self.ReadConfigData(ConfigFolder + "/Config.txt")
 
 
-
     def ReadTwitchData(self, Path):
-        print ("Reading Twitch data at: ", Path)
+        self.LLogger.LogStatus("Reading Twitch data at: " + Path)
 
         try:
             FileTwitchAuthData = open(Path)
             DataFound = True
 
         except:
-            print("'", Path, "'", " doesn't exist, creating now")
+            self.LLogger.LogStatus("'" + Path + "'" + " doesn't exist, creating now")
             FileTwitchAuthData = open(Path, 'w')
             FileTwitchAuthData.write(
                 "nickname: \n\
@@ -83,17 +85,17 @@ class ConfigController:
                 self.TWITCH_DataFound = True
 
         else:
-            print("\nTwitch Data cannot be read, pls check the config file!\n")
+            self.LLogger.LogError("Twitch Data cannot be read, pls check the config file!")
 
 
     def ReadYTData(self, Path):
-        print("Reading YT data at: ", Path)
+        self.LLogger.LogStatus("Reading YT data at: " + Path)
         try:
             YtUrlFile = open(Path)
             DataFound = True
 
         except:
-            print("'", Path, "'", " doesn't exist, creating now")
+            self.LLogger.LogStatus("'" + Path + "'" + " doesn't exist, creating now")
             YtUrlFile = open(Path, 'w')
             YtUrlFile.write("YT_url: ")
             YtUrlFile.close()
@@ -111,17 +113,17 @@ class ConfigController:
             self.YT_DataFound = True
 
         else:
-            print("\nYouTube Data cannot be read, pls check the config file!\n")
+            self.LLogger.LogError("YouTube Data cannot be read, pls check the config file!")
 
 
     def ReadObsData(self, Path):
-        print("Reading OBS data at: ", Path)
+        self.LLogger.LogStatus("Reading OBS data at: " + Path)
         try:
             ObsDataFile = open(Path)
             DataFound = True
 
         except:
-            print("'", Path, "'", " doesn't exist, creating now")
+            self.LLogger.LogStatus("'" + Path + "'" + " doesn't exist, creating now")
             ObsDataFile = open(Path, 'w')
             ObsDataFile.write("host: localhost\nport: 4455\npassword: ")
             ObsDataFile.close()
@@ -142,18 +144,18 @@ class ConfigController:
                     self.OBS_DataFound = True
 
                 except:
-                    print("Invalid Obs Auth Data")
+                    self.LLogger.LogError("Invalid Obs Auth Data")
                     self.OBS_DataFound = False
                     pass
 
 
     def ReadConfigData(self, Path):
-        print("Reading Config data at: ", Path)
+        self.LLogger.LogStatus("Reading Config data at: " + Path)
         try:
             ConfigFile = open(Path)
 
         except:
-            print("'", Path, "'", " doesn't exist, creating now")
+            self.LLogger.LogStatus("'", Path, "'", " doesn't exist, creating now")
             self.InitConfigFile(Path)
             ConfigFile = open(Path)
             pass
@@ -266,7 +268,7 @@ class ConfigController:
 
 
     def InitConfigFile(self, Path):
-        print("Initializing Config File")
+        self.LLogger.LogStatus("Initializing Config File")
 
         OptionLines = ""
         for i in self.DefaultOptions:
