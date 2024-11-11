@@ -1,7 +1,7 @@
 import datetime
 from mailbox import Message
 
-import Source.Types
+import Source_Core.Types
 
 class Logger:
 

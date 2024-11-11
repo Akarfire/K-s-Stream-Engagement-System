@@ -1,10 +1,11 @@
-from Source import TextToSpeech as tts
-from Source.ChatReader import ChatReader
-from Source.PyGameImplementation import PyGameWindow
-from Source.Config import ConfigController
-from Source.Commands import CommandProcessor
-from Source.OBS_Interface import ObsInterface
-from Source.Logger import  Logger
+from Source_Core import TextToSpeech as tts
+from Source_Core.ChatReader import ChatReader
+from Source_Core.PyGameImplementation import PyGameWindow
+from Source_Core.Config import ConfigController
+from Source_Core.Commands import CommandProcessor
+from Source_Core.OBS_Interface import ObsInterface
+from Source_Core.Logger import  Logger
+from Source_Core.ControlServer import ControlServer
 import time
 
 # Init Logger
@@ -27,6 +28,9 @@ MyCommandProcessor = CommandProcessor(MyConfigController, MyTTS, MyObsInterface,
 
 # Init Chat Reader
 MyChatReader = ChatReader(MyConfigController, MyCommandProcessor, MyLogger)
+
+# Control Server
+MyControlServer = ControlServer(MyLogger, MyCommandProcessor)
 
 
 # Main Loop
@@ -51,6 +55,7 @@ try:
             # Runtime Logic
             MyChatReader.MainThreadUpdate()
             MyCommandProcessor.UpdateCommandExecution(DeltaTime)
+            MyControlServer.UpdateControlServer()
 
             # Sleep
             time.sleep(TimeBetweenFrames)

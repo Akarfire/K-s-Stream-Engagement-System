@@ -1,6 +1,6 @@
 import queue
-import Source.CommandInstructions as Instructions
-# Source.Types import Command
+import Source_Core.CommandInstructions as Instructions
+# Source_Core.Types import Command
 
 class QueuedCommand:
     def __init__(self, InCommand, InChatMessage):

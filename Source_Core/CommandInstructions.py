@@ -1,5 +1,5 @@
 
-from Source.Types import Command
+from Source_Core.Types import Command
 
 
 class Command_TTS(Command):

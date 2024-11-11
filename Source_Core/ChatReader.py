@@ -10,7 +10,7 @@ import re
 import threading
 
 from profanity_check import predict_prob
-from Source.Types import ChatMessage
+from Source_Core.Types import ChatMessage
 
 
 class ChatReader:

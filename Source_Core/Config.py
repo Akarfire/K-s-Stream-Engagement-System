@@ -1,7 +1,7 @@
 from numpy.f2py.auxfuncs import throw_error
 from select import select
-from Source.Types import Command, TwitchAuthData, ObsAuthData
-from Source.Commands import AssignCommand
+from Source_Core.Types import Command, TwitchAuthData, ObsAuthData
+from Source_Core.Commands import AssignCommand
 
 class ConfigController:
     def __init__(self, ConfigFolder, InLogger):
