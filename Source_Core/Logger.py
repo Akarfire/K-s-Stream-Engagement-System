@@ -1,19 +1,14 @@
 import datetime
-from mailbox import Message
-
+from pathlib import Path
 import Source_Core.Types
 
 class Logger:
 
     def __init__(self):
 
+        Path("Logs").mkdir(parents=True, exist_ok=True)
         self.Dir = "Logs/"
         self.FileName = "Log_" + datetime.datetime.now().strftime("%I_%M%p - %B_%d_%Y") + ".txt"
-
-        #self.File = open(self.Dir + self.FileName, 'w')
-
-    # def __del__(self):
-    #     self.File.close()
 
 
     def LogString(self, InString, Print = True):

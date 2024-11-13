@@ -2,6 +2,7 @@ from numpy.f2py.auxfuncs import throw_error
 from select import select
 from Source_Core.Types import Command, TwitchAuthData, ObsAuthData
 from Source_Core.Commands import AssignCommand
+from pathlib import Path
 
 class ConfigController:
     def __init__(self, ConfigFolder, InLogger):
@@ -33,6 +34,9 @@ class ConfigController:
         self.YT_DataFound = False
         self.OBS_DataFound = False
 
+        # Creating Directory
+        Path(ConfigFolder).mkdir(parents=True, exist_ok=True)
+
         # Command Map:
         self.Commands = {}
 
@@ -57,7 +61,7 @@ class ConfigController:
             DataFound = True
 
         except:
-            self.LLogger.LogStatus("'" + Path + "'" + " doesn't exist, creating now")
+            self.LLogger.LogStatus(f"'{Path}' doesn't exist, creating now")
             FileTwitchAuthData = open(Path, 'w')
             FileTwitchAuthData.write(
                 "nickname: \n\
@@ -95,7 +99,7 @@ class ConfigController:
             DataFound = True
 
         except:
-            self.LLogger.LogStatus("'" + Path + "'" + " doesn't exist, creating now")
+            self.LLogger.LogStatus(f"'{Path}' doesn't exist, creating now")
             YtUrlFile = open(Path, 'w')
             YtUrlFile.write("YT_url: ")
             YtUrlFile.close()
@@ -123,7 +127,7 @@ class ConfigController:
             DataFound = True
 
         except:
-            self.LLogger.LogStatus("'" + Path + "'" + " doesn't exist, creating now")
+            self.LLogger.LogStatus(f"'{Path}' doesn't exist, creating now")
             ObsDataFile = open(Path, 'w')
             ObsDataFile.write("host: localhost\nport: 4455\npassword: ")
             ObsDataFile.close()
@@ -155,7 +159,7 @@ class ConfigController:
             ConfigFile = open(Path)
 
         except:
-            self.LLogger.LogStatus("'", Path, "'", " doesn't exist, creating now")
+            self.LLogger.LogStatus(f"'{Path}' doesn't exist, creating now")
             self.InitConfigFile(Path)
             ConfigFile = open(Path)
             pass

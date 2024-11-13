@@ -1,5 +1,6 @@
 from gtts import gTTS
 import pygame
+from pathlib import Path
 
 class TTS:
     def __init__(self, InConfigController, InLogger):
@@ -8,6 +9,9 @@ class TTS:
         self.LLogger = InLogger
 
         self.LLogger.NewLogSegment("Init TTS")
+
+        # Create SFX Directory
+        Path("SFX").mkdir(parents=True, exist_ok=True)
 
 
     # Converts text to speech using gTTS
