@@ -3,8 +3,6 @@ import base64
 import hashlib
 import json
 
-from Source_Core.Types import ObsAuthData
-
 class ObsInterface:
     def __init__(self, InConfigController, InLogger):
 
