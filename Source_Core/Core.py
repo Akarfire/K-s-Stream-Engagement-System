@@ -7,8 +7,10 @@ from Source_Core.Commands import CommandProcessor
 from Source_Core.OBS_Interface import ObsInterface
 from Source_Core.Logger import  Logger
 from Source_Core.ControlServer import ControlServer
-import Source_Core.PluginImpl
+from Source_Core.CommunicationBus import CommunicationBus
+from Source_Core.PluginImpl import PluginManager
 import time
+import Source_Core.CoreComponent
 
 class CoreApp:
 
@@ -16,14 +18,16 @@ class CoreApp:
         # Init Logger
         self.MyLogger = Logger()
 
-        # Init Config Controller
-        self.MyConfigController = ConfigController("Config", self.MyLogger)
+        # Communication Bus
+        self.MyCommunicationBus = CommunicationBus(self)
 
         # Loading Plugins
-        LoadPlugins(self.MyLogger)
+        self.MyPluginManager = PluginManager(self, "PluginManager")
 
-        # Init Plugins
-        self.Plugins = []
+        self.MyPluginManager.LoadPlugins()
+
+        # Init Config Controller
+        self.MyConfigController = ConfigController("Config", self.MyLogger)
 
         # Init PyGameWindow
         self.MyPyGameWindow = PyGameWindow()
@@ -40,13 +44,11 @@ class CoreApp:
         # Init Chat Reader
         #self.MyChatReader = ChatReader(self.MyConfigController, self.MyCommandProcessor, self.MyLogger)
 
+        # Init Plugins
+        self.MyPluginManager.InitPlugins()
+
         # Control Server
         self.MyControlServer = ControlServer(self.MyLogger, self.MyCommandProcessor)
-
-        for p in PluginBase.PluginList:
-            Inst = p()
-            Inst.InitPlugin(self)
-            self.Plugins.append(Inst)
 
         # Main Loop
         self.MyLogger.NewLogSegment("RUNTIME")
@@ -86,9 +88,6 @@ class CoreApp:
 
         # Quiting
         self.MyLogger.LogStatus("QUITING")
-
-        if (self.MyChatReader.USE_TWITCH):
-            self.MyChatReader.TwitchSocket.close()
 
         try:
             pygame.quit()

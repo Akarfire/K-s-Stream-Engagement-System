@@ -25,7 +25,7 @@ class TTS:
                 # Saves output to TTS_Audio.mp3
                 MyTTS.save("TmpFiles/TTS_Audio.mp3")
             except:
-                self.LLogger.LogError("Failed to TTS: ", txt)
+                self.LLogger.LogError("Failed to TTS: " + txt)
                 pass
 
 

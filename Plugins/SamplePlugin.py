@@ -6,8 +6,8 @@ class SamplePlugin(PluginImpl.PluginBase):
         super().__init__()
         pass
 
-    def InitPlugin(self, InCore):
-        super().InitPlugin(InCore)
+    def InitPlugin(self, InPluginManager):
+        super().InitPlugin(InPluginManager)
 
     def DeletePlugin(self):
         pass
@@ -15,8 +15,6 @@ class SamplePlugin(PluginImpl.PluginBase):
     def UpdatePlugin(self, DeltaSeconds):
         pass
 
-    def SendDataToPlugin(self, Data):
+    def ReceiveRequest(self, DataMessage):
         pass
 
-    def SendDataToServer(self, Data):
-        pass

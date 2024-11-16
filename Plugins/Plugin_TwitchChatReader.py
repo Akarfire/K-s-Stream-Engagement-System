@@ -5,7 +5,6 @@ import select
 import datetime
 import re
 import threading
-from profanity_check import predict_prob
 from Source_Core.Types import ChatMessage
 from Source_Core import PluginImpl
 
@@ -15,8 +14,8 @@ class TwitchChatReader(PluginImpl.PluginBase):
         super().__init__()
         pass
 
-    def InitPlugin(self, InCore):
-        super().InitPlugin(InCore)
+    def InitPlugin(self, InPluginManager):
+        super().InitPlugin(InPluginManager)
 
         self.USE_TWITCH = self.MyCore.MyConfigController.Options["Use_Twitch"] and self.MyCore.MyConfigController.TWITCH_DataFound
 
@@ -68,11 +67,7 @@ class TwitchChatReader(PluginImpl.PluginBase):
             self.OnChatMessageArrived(self.MessageQueue.get())
 
 
-    def SendDataToPlugin(self, Data):
-        pass
-
-
-    def SendDataToServer(self, Data):
+    def ReceiveRequest(self, DataMessage):
         pass
 
 

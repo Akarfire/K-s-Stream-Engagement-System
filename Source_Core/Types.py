@@ -21,6 +21,15 @@ class ObsAuthData:
     port : int
     password : str
 
+
+class DataMessage:
+    def __init__(self, InReceiverAddress, InSenderAddress, InDataType, InData):
+        self.ReceiverAddress = InReceiverAddress
+        self.SenderAddress = InSenderAddress
+        self.DataType = InDataType
+        self.Data = InData
+
+
 class Command:
     def __init__(self, InName, InCalls, InAtr):
         self.Name = InName
