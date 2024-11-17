@@ -1,13 +1,15 @@
 from numpy.f2py.auxfuncs import throw_error
 from select import select
-from Source_Core.Types import Command, TwitchAuthData, ObsAuthData
-from Source_Core.Commands import AssignCommand
+from Source_Core.Types import Command, TwitchAuthData, ObsAuthData, DataMessage
+from Source_Core.CommunicationBus import CoreComponent_BusConnected
 from pathlib import Path
 
-class ConfigController:
-    def __init__(self, ConfigFolder, InLogger):
+class ConfigController(CoreComponent_BusConnected):
 
-        self.LLogger = InLogger
+    def __init__(self, InCore, InAddress, ConfigFolder):
+        super().__init__(InCore, InAddress)
+
+        self.LLogger = self.MyCore.MyLogger
         self.LLogger.NewLogSegment("Loading Config Data")
 
         # Default Values
@@ -51,6 +53,14 @@ class ConfigController:
 
         # Config Data
         self.ReadConfigData(ConfigFolder + "/Config.txt")
+
+
+    def ReceivedData(self, InDataMessage):
+        self.MyCore.MyLogger.LogStatus(f"CONFIG: received data: {InDataMessage.Data}")
+        if InDataMessage.Data["Head"] == "Request_CommandList":
+            self.MyCore.MyLogger.LogStatus(f"CONFIG received Request_CommandList")
+            CallbackMessage = DataMessage(InDataMessage.SenderAddress, self.Address, "CB", {"Head" : "Request_CommandList", "Data" : self.Commands})
+            self.TransmitData(CallbackMessage)
 
 
     def ReadTwitchData(self, Path):
@@ -268,7 +278,7 @@ class ConfigController:
                         else:
                             Atr[atr] = True
 
-        self.Commands[Name] = AssignCommand(Name, Calls, Atr)
+        self.Commands[Name] = {"Name" : Name, "Calls" : Calls, "Atr" : Atr}
 
 
     def InitConfigFile(self, Path):

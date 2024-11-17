@@ -18,15 +18,16 @@ class YTChatReader(PluginImpl.PluginBase):
     def InitPlugin(self, InPluginManager):
         super().InitPlugin(InPluginManager)
 
+        self.MyCore = self.MyPluginManager.MyCore
+
         self.USE_YT = self.MyCore.MyConfigController.Options["Use_YT"] and self.MyCore.MyConfigController.YT_DataFound
 
         # Logger
         self.LLogger = self.MyCore.MyLogger
-        self.LLogger.NewLogSegment("Init Chat Reader")
 
         # Initial Info Print
         self.LLogger.LogStatus(
-            f"\nYouTube Chat Reader Plugin Initiated!\nUsing YT: {self.USE_YT}\n\n "
+            f"YouTube Chat Reader Plugin Initiated!\nUsing YT: {self.USE_YT}\n"
         )
 
         # YT Chat
@@ -45,9 +46,6 @@ class YTChatReader(PluginImpl.PluginBase):
         # Config Controller
         self.LConfigController = self.MyCore.MyConfigController
 
-        # Command Processor
-        self.LCommandProcessor = self.MyCore.MyCommandProcessor
-
         # Async
         self.YTFetchThread = threading.Thread(target=AsyncUpdateYT, args=(self,), daemon=True)
 
@@ -62,9 +60,9 @@ class YTChatReader(PluginImpl.PluginBase):
 
     def UpdatePlugin(self, DeltaSeconds):
         if not self.MessageQueue.empty():
-            self.OnChatMessageArrived(self.MessageQueue.get())
+            self.TransmitEvent("OnChatMessageArrived", self.MessageQueue.get())
 
-    def ReceiveRequest(self, DataMessage):
+    def ReceiveMessage(self, InDataMessage):
         pass
 
 

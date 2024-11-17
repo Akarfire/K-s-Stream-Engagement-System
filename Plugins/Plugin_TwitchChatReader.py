@@ -5,7 +5,7 @@ import select
 import datetime
 import re
 import threading
-from Source_Core.Types import ChatMessage
+from Source_Core.Types import ChatMessage, DataMessage
 from Source_Core import PluginImpl
 
 class TwitchChatReader(PluginImpl.PluginBase):
@@ -17,15 +17,16 @@ class TwitchChatReader(PluginImpl.PluginBase):
     def InitPlugin(self, InPluginManager):
         super().InitPlugin(InPluginManager)
 
+        self.MyCore = self.MyPluginManager.MyCore
+
         self.USE_TWITCH = self.MyCore.MyConfigController.Options["Use_Twitch"] and self.MyCore.MyConfigController.TWITCH_DataFound
 
         # Logger
         self.LLogger = self.MyCore.MyLogger
-        self.LLogger.NewLogSegment("Init Chat Reader")
 
         # Initial Info Print
         self.LLogger.LogStatus(
-            f"\nTwitch Chat Reader Plugin Initiated!\nUsing Twitch: {self.USE_TWITCH}\n\n "
+            f"Twitch Chat Reader Plugin Initiated!\nUsing Twitch: {self.USE_TWITCH}\n "
         )
 
         # Twitch Chat Connection
@@ -46,9 +47,6 @@ class TwitchChatReader(PluginImpl.PluginBase):
         # Config Controller
         self.LConfigController = self.MyCore.MyConfigController
 
-        # Command Processor
-        self.LCommandProcessor = self.MyCore.MyCommandProcessor
-
         # Async
         self.TwitchFetchThread = threading.Thread(target=AsyncUpdateTwitch, args=(self,), daemon=True)
 
@@ -63,11 +61,12 @@ class TwitchChatReader(PluginImpl.PluginBase):
 
 
     def UpdatePlugin(self, DeltaSeconds):
+
         if not self.MessageQueue.empty():
-            self.OnChatMessageArrived(self.MessageQueue.get())
+            self.TransmitEvent("OnChatMessageArrived", self.MessageQueue.get())
 
 
-    def ReceiveRequest(self, DataMessage):
+    def ReceiveMessage(self, InDataMessage):
         pass
 
 
@@ -88,26 +87,6 @@ class TwitchChatReader(PluginImpl.PluginBase):
 
         outMessage.Author = "Twitch"
         return outMessage
-
-
-    def OnChatMessageArrived(self, Message):
-        self.LLogger.LogMessage(Message)
-
-        NewMessage = Message
-        NewMessage.Message, WasFiltered = self.FilterMessage(Message.Message)
-
-        self.LCommandProcessor.ScanAndExecuteMessageCommands(NewMessage, WasFiltered)
-
-
-    def FilterMessage(self, Message):
-
-        FILTERED = predict_prob([Message])[0] > self.LConfigController.Options["Filter_Tolerance"]
-
-        if FILTERED:
-            self.LLogger.LogStatus("Message Filtered!")
-            return Message, True
-
-        return Message, False
 
 
 def AsyncUpdateTwitch(InChatReader):

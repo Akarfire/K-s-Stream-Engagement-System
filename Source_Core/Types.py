@@ -26,8 +26,8 @@ class DataMessage:
     def __init__(self, InReceiverAddress, InSenderAddress, InDataType, InData):
         self.ReceiverAddress = InReceiverAddress
         self.SenderAddress = InSenderAddress
-        self.DataType = InDataType
-        self.Data = InData
+        self.DataType = InDataType # "RE" - request, "CB" - callback, "EV" - event, "EVN" - event notification, "IN" - instruction
+        self.Data = InData # {"Head" : "message name", "Data" : ...}
 
 
 class Command:
@@ -56,3 +56,6 @@ class Command:
 
     def FinishExecution(self):
         self.Processor.OnCurrentCommandFinished()
+
+    def OnProcessorReceivedEventNotification(self, InDataMessage):
+        pass

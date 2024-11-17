@@ -6,6 +6,8 @@ import random
 
 from Source_Core.AddressManagement import AddressManager
 from Source_Core.CommunicationBus import CoreComponent_BusConnected
+from Source_Core.Types import DataMessage
+
 
 class PluginBase:
 
@@ -15,15 +17,28 @@ class PluginBase:
         self.MyCore = None
         self.Address = "Plugin" + str(random.randint(10000, 99999))
 
+        self.Subscriptions = []
+        self.Instructions = []
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         cls.PluginList.append(cls)
 
     def InitPlugin(self, InPluginManager):
         self.MyPluginManager = InPluginManager
+        self.MyCore = InPluginManager.MyCore
 
-    def TransmitRequest(self, DataMessage):
-        self.MyPluginManager.ReceivedData(DataMessage)
+    def TransmitMessage(self, InReceiverAddress, InType, InData):
+        RequestDataMessage = DataMessage(InReceiverAddress, self.Address, InType, InData)
+        self.MyPluginManager.ReceivedData(RequestDataMessage)
+
+    def TransmitEvent(self, InEventName, InData):
+        EventDataMessage = DataMessage("-", self.Address, "EV", {"Head" : InEventName, "Data" : InData})
+        self.MyPluginManager.ReceivedData(EventDataMessage)
+
+    def TransmitInstruction(self, InInstructionName, InArguments):
+        InstructionMessage = DataMessage("Instructions", self.Address, "IN", {"Head" : InInstructionName, "Data" : InArguments})
+        self.MyPluginManager.ReceivedData(InstructionMessage)
 
     def DeletePlugin(self):
         pass
@@ -31,7 +46,7 @@ class PluginBase:
     def UpdatePlugin(self, DeltaSeconds):
         pass
 
-    def ReceiveRequest(self, DataMessage):
+    def ReceiveMessage(self, InDataMessage):
         pass
 
 
@@ -75,21 +90,42 @@ class PluginManager(CoreComponent_BusConnected):
 
         for p in PluginBase.PluginList:
             Inst = p()
+
+            Address = "PLUGIN_" + Inst.Address
+            Inst.Address = Address
+            self.PluginAddressManager.RegisterAddress(Address, Inst)
+            self.MyCommunicationBus.RegisterAddress(Address, self)
+
             Inst.InitPlugin(self)
             self.Plugins.append(Inst)
 
-            Address = "PLUGIN_" + Inst.Address
-            self.PluginAddressManager.RegisterAddress(Address, Inst)
-            self.MyCommunicationBus.RegisterAdress(Address, self)
+            for Sub in Inst.Subscriptions:
+                self.PluginAddressManager.RegisterSubscription(Sub, Inst.Address)
+                self.MyCommunicationBus.RegisterSubscription(Sub, Inst.Address)
+
+            for Instruction in Inst.Instructions:
+                self.MyCore.MyInstructionProcessor.RegisterInstruction(Instruction, Inst.Address)
+
+
+
+    def UpdatePlugins(self, InDeltaTime):
+
+        for Plugin in self.Plugins:
+            Plugin.UpdatePlugin(InDeltaTime)
 
 
     def ReceivedData(self, InDataMessage):
+        if InDataMessage.DataType in ["RE", "CB", "EVN", "IN"]:
 
-        # If the receiver is a plugin
-        if self.PluginAddressManager.IsValidAddress(InDataMessage.ReceiverAddress):
-            self.PluginAddressManager.GetComponent(InDataMessage.ReceiverAddress).ReceiveRequest(InDataMessage)
+            # If the receiver is a plugin
+            if self.PluginAddressManager.IsValidAddress(InDataMessage.ReceiverAddress):
+                self.PluginAddressManager.GetComponent(InDataMessage.ReceiverAddress).ReceiveMessage(InDataMessage)
 
-        # If sender is a plugin and it is sending a request to the core
-        elif self.PluginAddressManager.IsValidAddress(InDataMessage.SenderAddress):
+            # If sender is a plugin, and it is sending a request to the core
+            elif self.PluginAddressManager.IsValidAddress(InDataMessage.SenderAddress):
+                self.TransmitData(InDataMessage)
+
+
+        elif InDataMessage.DataType == "EV":
             self.TransmitData(InDataMessage)
 

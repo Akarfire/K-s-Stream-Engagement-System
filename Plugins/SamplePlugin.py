@@ -4,10 +4,11 @@ class SamplePlugin(PluginImpl.PluginBase):
 
     def __init__(self):
         super().__init__()
-        pass
 
     def InitPlugin(self, InPluginManager):
         super().InitPlugin(InPluginManager)
+        self.Subscriptions = []
+        self.Instructions = []
 
     def DeletePlugin(self):
         pass
@@ -15,6 +16,6 @@ class SamplePlugin(PluginImpl.PluginBase):
     def UpdatePlugin(self, DeltaSeconds):
         pass
 
-    def ReceiveRequest(self, DataMessage):
+    def ReceiveMessage(self, InDataMessage):
         pass
 

@@ -4,6 +4,7 @@ class AddressManager:
 
     def __init__(self, InLogger):
         self.Addresses = dict() # <address, component>
+        self.Subscriptions = dict() # <event, list[addresses]>
         self.LLogger = InLogger
 
 
@@ -30,11 +31,28 @@ class AddressManager:
         return InAddress in self.Addresses
 
 
+    def RegisterSubscription(self, InEventName, InReceiverAddress):
 
-class SubscriptionManager:
+        if InEventName in self.Subscriptions:
+            self.Subscriptions[InEventName].append(InReceiverAddress)
 
-    def __init__(self, InLogger):
-        self.Subscriptions = dict() # <event, list[core_component]>
+        else:
+            self.Subscriptions[InEventName] = [InReceiverAddress]
+
+
+    def GetSubscribers(self, InEventName):
+
+        if InEventName in self.Subscriptions:
+            return self.Subscriptions[InEventName]
+
+        else:
+            self.LLogger.LogError(f"SUBSCRIPTION MANAGER: Event '{InEventName}' does not exist!")
+
+
+    def IsValidEvent(self, InEventName):
+
+        return InEventName in self.Subscriptions
+
 
 
 

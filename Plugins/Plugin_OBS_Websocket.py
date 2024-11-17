@@ -1,19 +1,26 @@
+from Source_Core import PluginImpl
 import websocket
 import base64
 import hashlib
 import json
 
-class ObsInterface:
-    def __init__(self, InConfigController, InLogger):
+class ObsWebsocket(PluginImpl.PluginBase):
+
+    def __init__(self):
+        super().__init__()
+
+    def InitPlugin(self, InPluginManager):
+        super().InitPlugin(InPluginManager)
+        self.Subscriptions = []
+        self.Instructions = ["OBS_SetFilterEnabled", "OBS_SetItemEnabled"]
 
         # Data
-        self.LConfigController = InConfigController
-        self.AuthData = InConfigController.ObsAuth
+        self.LConfigController = self.MyCore.MyConfigController
+        self.AuthData = self.LConfigController.ObsAuth
 
-        self.LLogger = InLogger
-        self.LLogger.NewLogSegment("Init OBS Interface")
+        self.LLogger = self.MyCore.MyLogger
 
-        self.Enabled = InConfigController.OBS_DataFound and InConfigController.Options["Use_OBS"]
+        self.Enabled = self.LConfigController.OBS_DataFound and self.LConfigController.Options["Use_OBS"]
 
         if self.Enabled:
 
@@ -34,11 +41,24 @@ class ObsInterface:
         else:
             self.LLogger.LogStatus("OBS integration disabled")
 
-
-    def __del__(self):
+    def DeletePlugin(self):
         pass
-        #if self.Enabled:
-            #self.ObsWS.close()
+
+    def UpdatePlugin(self, DeltaSeconds):
+        pass
+
+    def ReceiveMessage(self, InDataMessage):
+
+        if self.Enabled:
+            if InDataMessage.DataType == "IN":
+
+                if InDataMessage.Data["Head"] == "OBS_SetFilterEnabled":
+                    Data = InDataMessage.Data["Data"]
+                    self.SetFilterEnabled(Data["Source"], Data["Filter"], Data["NewEnabled"])
+
+                elif InDataMessage.Data["Head"] == "OBS_SetItemEnabled":
+                    Data = InDataMessage.Data["Data"]
+                    self.SetItemEnabledByName(Data["Scene"], Data["Item"], Data["NewEnabled"])
 
 
     def GenerateAuthString(self, Challenge, Salt):
@@ -73,7 +93,7 @@ class ObsInterface:
         self.LLogger.LogObsResponse(json.loads(Response))
 
 
-    def SendRequest(self, RequestType, RequestID, RequestData = {}):
+    def SendRequest(self, RequestType, RequestID, RequestData):
 
         if self.Enabled:
             Payload = {
@@ -135,11 +155,3 @@ class ObsInterface:
         })
 
         self.LLogger.LogObsResponse(Response)
-
-
-
-
-
-
-
-

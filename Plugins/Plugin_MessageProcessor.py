@@ -1,15 +1,24 @@
 from Source_Core import PluginImpl
 from profanity_check import predict_prob
+from Source_Core.Types import ChatMessage
 
 class MessageProcessor(PluginImpl.PluginBase):
 
     def __init__(self):
         super().__init__()
+        self.Address = "MessageProcessor"
         pass
 
     def InitPlugin(self, InPluginManager):
         super().InitPlugin(InPluginManager)
-        self.Address = "MessageProcessor"
+
+        self.Subscriptions = ["OnChatMessageArrived"]
+
+        # Initial Info Print
+        self.MyPluginManager.LLogger.LogStatus(
+            f"YouTube Chat Reader Plugin Initiated!"
+        )
+
 
     def DeletePlugin(self):
         pass
@@ -17,8 +26,10 @@ class MessageProcessor(PluginImpl.PluginBase):
     def UpdatePlugin(self, DeltaSeconds):
         pass
 
-    def ReceiveRequest(self, DataMessage):
-        pass
+    def ReceiveMessage(self, InDataMessage):
+
+        if InDataMessage.Data["Head"] == "OnChatMessageArrived":
+            self.OnChatMessageArrived(InDataMessage.Data["Data"])
 
 
     def OnChatMessageArrived(self, Message):
@@ -27,7 +38,8 @@ class MessageProcessor(PluginImpl.PluginBase):
         NewMessage = Message
         NewMessage.Message, WasFiltered = self.FilterMessage(Message.Message)
 
-        self.MyPluginManager.MyCore.MyCommandProcessor.ScanAndExecuteMessageCommands(NewMessage, WasFiltered)
+        #self.MyPluginManager.MyCore.MyCommandProcessor.ScanAndExecuteMessageCommands(NewMessage, WasFiltered)
+        self.TransmitInstruction("COMMAND_ProcessMessageCommands", {"Message" : NewMessage, "WasFiltered" : WasFiltered})
 
 
     def FilterMessage(self, Message):
