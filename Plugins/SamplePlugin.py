@@ -5,10 +5,13 @@ class SamplePlugin(PluginImpl.PluginBase):
     def __init__(self):
         super().__init__()
 
-    def InitPlugin(self, InPluginManager):
-        super().InitPlugin(InPluginManager)
+        #self.Address = ...
+        self.ConfigSection = ""
         self.Subscriptions = []
         self.Instructions = []
+
+    def InitPlugin(self, InPluginManager):
+        super().InitPlugin(InPluginManager)
 
     def DeletePlugin(self):
         pass
@@ -17,5 +20,8 @@ class SamplePlugin(PluginImpl.PluginBase):
         pass
 
     def ReceiveMessage(self, InDataMessage):
-        pass
+        super().ReceiveMessage(InDataMessage)
+
+    def ReadConfigData(self, InConfigFileLines):
+        self.ReadOptions(InConfigFileLines)
 

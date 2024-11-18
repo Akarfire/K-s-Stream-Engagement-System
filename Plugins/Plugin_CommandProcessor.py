@@ -15,6 +15,11 @@ class CommandProcessor(PluginImpl.PluginBase):
     def __init__(self):
         super().__init__()
 
+        self.Address = "CommandProcessor"
+        self.ConfigSection = "Commands"
+        self.Subscriptions = ["TTS_FinishedPlayingSFX", "TTS_FinishedPlayingTTS"]
+        self.Instructions = ["COMMAND_ProcessMessageCommands"]
+
         self.LLogger = None
 
         self.Commands = dict()
@@ -29,8 +34,6 @@ class CommandProcessor(PluginImpl.PluginBase):
 
     def InitPlugin(self, InPluginManager):
         super().InitPlugin(InPluginManager)
-        self.Subscriptions = ["TTS_FinishedPlayingSFX", "TTS_FinishedPlayingTTS"]
-        self.Instructions = ["COMMAND_ProcessMessageCommands"]
 
         self.LLogger = self.MyCore.MyLogger
         self.LLogger.NewLogSegment("Init Command Processor")
@@ -61,6 +64,8 @@ class CommandProcessor(PluginImpl.PluginBase):
 
 
     def ReceiveMessage(self, InDataMessage):
+
+        super().ReceiveMessage(InDataMessage)
 
         if InDataMessage.DataType == "CB" and InDataMessage.Data["Head"] == "Request_CommandList":
             self.InitCommandList(InDataMessage.Data["Data"])

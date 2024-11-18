@@ -7,12 +7,13 @@ class MessageProcessor(PluginImpl.PluginBase):
     def __init__(self):
         super().__init__()
         self.Address = "MessageProcessor"
-        pass
+        self.ConfigSection = "MessageProcessor"
+        self.Subscriptions = ["OnChatMessageArrived"]
+        self.Instructions = []
+
 
     def InitPlugin(self, InPluginManager):
         super().InitPlugin(InPluginManager)
-
-        self.Subscriptions = ["OnChatMessageArrived"]
 
         # Initial Info Print
         self.MyPluginManager.LLogger.LogStatus(
@@ -28,6 +29,7 @@ class MessageProcessor(PluginImpl.PluginBase):
 
     def ReceiveMessage(self, InDataMessage):
 
+        super().ReceiveMessage(InDataMessage)
         if InDataMessage.Data["Head"] == "OnChatMessageArrived":
             self.OnChatMessageArrived(InDataMessage.Data["Data"])
 

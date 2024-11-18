@@ -16,6 +16,8 @@ class PluginBase:
     def __init__(self):
         self.MyCore = None
         self.Address = "Plugin" + str(random.randint(10000, 99999))
+        self.ConfigSection = ""
+        self.Config = {"Options" : {}}
 
         self.Subscriptions = []
         self.Instructions = []
@@ -24,7 +26,7 @@ class PluginBase:
         super().__init_subclass__(**kwargs)
         cls.PluginList.append(cls)
 
-    def InitPlugin(self, InPluginManager):
+    def InitPlugin(self, InPluginManager): # OVERRIDE
         self.MyPluginManager = InPluginManager
         self.MyCore = InPluginManager.MyCore
 
@@ -40,14 +42,51 @@ class PluginBase:
         InstructionMessage = DataMessage("Instructions", self.Address, "IN", {"Head" : InInstructionName, "Data" : InArguments})
         self.MyPluginManager.ReceivedData(InstructionMessage)
 
-    def DeletePlugin(self):
+    def DeletePlugin(self): # OVERRIDE
         pass
 
-    def UpdatePlugin(self, DeltaSeconds):
+    def UpdatePlugin(self, DeltaSeconds): # OVERRIDE
         pass
 
-    def ReceiveMessage(self, InDataMessage):
-        pass
+    def ReceiveMessage(self, InDataMessage): # OVERRIDE
+        if InDataMessage.DataType == "CB" and InDataMessage.Data["Head"] == "PluginConfigRequest":
+            self.ReadConfigData(InDataMessage.Data["Data"])
+        # Override
+
+    def RequestConfigData(self):
+        self.TransmitMessage("Config", "RE", {"Head" : "PluginConfigRequest", "Data" : self.ConfigSection})
+
+    def ReadConfigData(self, InConfigFileLines): # OVERRIDE
+        self.ReadOptions(InConfigFileLines)
+
+    def ReadOptions(self, InOptionLines):
+
+        i = 0
+        while i < len(InOptionLines):
+
+            OptionLine = InOptionLines[i]
+
+            if len(OptionLine) > 0 and OptionLine.count('=') == 1:
+
+                Name, Value = OptionLine.replace(' ', '').split('=')
+
+                if '[b]' in Value:
+                    self.Config["Options"][Name] = Value.replace('[b]', '').lower() == "true"
+
+                elif '[i]' in Value:
+                    self.Config["Options"][Name] = int(Value.replace('[i]', ''))
+
+                elif '[f]' in Value:
+                    self.Config["Options"][Name] = float(Value.replace('[f]', ''))
+
+                elif '[s]' in Value:
+                    self.Config["Options"][Name] = Value.replace('[s]', '')
+
+                else:
+                    self.Config["Options"][Name] = Value
+
+            i += 1
+
 
 
 class PluginManager(CoreComponent_BusConnected):
@@ -96,6 +135,7 @@ class PluginManager(CoreComponent_BusConnected):
             self.PluginAddressManager.RegisterAddress(Address, Inst)
             self.MyCommunicationBus.RegisterAddress(Address, self)
 
+            Inst.RequestConfigData()
             Inst.InitPlugin(self)
             self.Plugins.append(Inst)
 

@@ -10,6 +10,12 @@ class TextToSpeech(PluginImpl.PluginBase):
 
     def __init__(self):
         super().__init__()
+
+        self.Address = "TextToSpeech"
+        self.ConfigSection = "TTS"
+        self.Subscriptions = []
+        self.Instructions = ["TTS_ConvertTTS", "TTS_PlayTTS", "TTS_PlaySFX"]
+
         self.display = None
         self.clock = None
         self.slow = None
@@ -19,8 +25,6 @@ class TextToSpeech(PluginImpl.PluginBase):
 
     def InitPlugin(self, InPluginManager):
         super().InitPlugin(InPluginManager)
-        self.Subscriptions = []
-        self.Instructions = ["TTS_ConvertTTS", "TTS_PlayTTS", "TTS_PlaySFX"]
 
         # Pygame Init
         pygame.init()
@@ -70,6 +74,8 @@ class TextToSpeech(PluginImpl.PluginBase):
 
 
     def ReceiveMessage(self, InDataMessage):
+
+        super().ReceiveMessage(InDataMessage)
 
         if InDataMessage.DataType == "IN":
             if InDataMessage.Data["Head"] == "TTS_ConvertTTS":

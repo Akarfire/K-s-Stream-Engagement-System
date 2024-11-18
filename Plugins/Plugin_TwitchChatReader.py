@@ -7,12 +7,29 @@ import re
 import threading
 from Source_Core.Types import ChatMessage, DataMessage
 from Source_Core import PluginImpl
+from dataclasses import dataclass
+
+@dataclass
+class TwitchAuthData:
+    server : str
+    port : int
+    nickname : str
+    token : str
+    channel : str
+
 
 class TwitchChatReader(PluginImpl.PluginBase):
 
     def __init__(self):
         super().__init__()
-        pass
+        self.Address = "TwitchChatReader"
+        self.ConfigSection = "TwitchChat"
+        self.Subscriptions = []
+        self.Instructions = []
+
+        self.TwitchAuth = TwitchAuthData("", 0, "", "", "")
+        self.TWITCH_DataFound = False
+
 
     def InitPlugin(self, InPluginManager):
         super().InitPlugin(InPluginManager)
@@ -67,7 +84,7 @@ class TwitchChatReader(PluginImpl.PluginBase):
 
 
     def ReceiveMessage(self, InDataMessage):
-        pass
+        super().ReceiveMessage(InDataMessage)
 
 
     def ParseTwitchMessage(self, InMessage):
@@ -87,6 +104,48 @@ class TwitchChatReader(PluginImpl.PluginBase):
 
         outMessage.Author = "Twitch"
         return outMessage
+
+    def ReadConfigData(self, InConfigFileLines):
+
+        self.ReadOptions(InConfigFileLines)
+
+        Path = "Config/TWITCH_AUTH.txt"
+        self.LLogger.LogStatus("Reading Twitch data at: " + Path)
+
+        try:
+            FileTwitchAuthData = open(Path)
+            DataFound = True
+
+        except:
+            self.LLogger.LogStatus(f"'{Path}' doesn't exist, creating now")
+            FileTwitchAuthData = open(Path, 'w')
+            FileTwitchAuthData.write(
+                "nickname: \n\
+                token: \n\
+                channel: ".replace('    ', '')
+            )
+            FileTwitchAuthData.close()
+
+            DataFound = False
+            pass
+
+        if DataFound:
+            TwitchData = FileTwitchAuthData.readlines()
+
+            if len(TwitchData) >= 3:
+                self.TwitchAuth = TwitchAuthData(
+                    server="irc.chat.twitch.tv",
+                    port=6667,
+                    nickname=TwitchData[0].replace('nickname: ', ''),
+                    token=TwitchData[1].replace('token: ', ''),
+                    channel=TwitchData[2].replace('channel: ', '')
+                )
+                FileTwitchAuthData.close()
+
+                self.TWITCH_DataFound = True
+
+        else:
+            self.LLogger.LogError("Twitch Data cannot be read, pls check the config file!")
 
 
 def AsyncUpdateTwitch(InChatReader):

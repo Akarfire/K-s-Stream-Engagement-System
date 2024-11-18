@@ -7,13 +7,6 @@ class ChatMessage:
     Author: str
     Message: str
 
-@dataclass
-class TwitchAuthData:
-    server : str
-    port : int
-    nickname : str
-    token : str
-    channel : str
 
 @dataclass
 class ObsAuthData:

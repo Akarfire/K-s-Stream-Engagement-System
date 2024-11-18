@@ -43,124 +43,122 @@ class ConfigController(CoreComponent_BusConnected):
         self.Commands = {}
 
         # Twitch Chat Data
-        self.ReadTwitchData(ConfigFolder + "/TWITCH_AUTH.txt")
+        # self.ReadTwitchData(ConfigFolder + "/TWITCH_AUTH.txt")
 
         # YT Chat Data
-        self.ReadYTData(ConfigFolder + "/YT_URL.txt")
+        # self.ReadYTData(ConfigFolder + "/YT_URL.txt")
 
         # OBS Auth Data
-        self.ReadObsData(ConfigFolder + "/OBS_AUTH.txt")
+        # self.ReadObsData(ConfigFolder + "/OBS_AUTH.txt")
 
         # Config Data
         self.ReadConfigData(ConfigFolder + "/Config.txt")
 
 
     def ReceivedData(self, InDataMessage):
-        self.MyCore.MyLogger.LogStatus(f"CONFIG: received data: {InDataMessage.Data}")
         if InDataMessage.Data["Head"] == "Request_CommandList":
-            self.MyCore.MyLogger.LogStatus(f"CONFIG received Request_CommandList")
             CallbackMessage = DataMessage(InDataMessage.SenderAddress, self.Address, "CB", {"Head" : "Request_CommandList", "Data" : self.Commands})
             self.TransmitData(CallbackMessage)
 
 
-    def ReadTwitchData(self, Path):
-        self.LLogger.LogStatus("Reading Twitch data at: " + Path)
-
-        try:
-            FileTwitchAuthData = open(Path)
-            DataFound = True
-
-        except:
-            self.LLogger.LogStatus(f"'{Path}' doesn't exist, creating now")
-            FileTwitchAuthData = open(Path, 'w')
-            FileTwitchAuthData.write(
-                "nickname: \n\
-                token: \n\
-                channel: ".replace('    ', '')
-            )
-            FileTwitchAuthData.close()
-
-            DataFound = False
-            pass
-
-        if DataFound:
-            TwitchData = FileTwitchAuthData.readlines()
-
-            if len(TwitchData) >= 3:
-                self.TwitchAuth = TwitchAuthData(
-                    server="irc.chat.twitch.tv",
-                    port=6667,
-                    nickname=TwitchData[0].replace('nickname: ', ''),
-                    token=TwitchData[1].replace('token: ', ''),
-                    channel=TwitchData[2].replace('channel: ', '')
-                )
-                FileTwitchAuthData.close()
-
-                self.TWITCH_DataFound = True
-
-        else:
-            self.LLogger.LogError("Twitch Data cannot be read, pls check the config file!")
-
-
-    def ReadYTData(self, Path):
-        self.LLogger.LogStatus("Reading YT data at: " + Path)
-        try:
-            YtUrlFile = open(Path)
-            DataFound = True
-
-        except:
-            self.LLogger.LogStatus(f"'{Path}' doesn't exist, creating now")
-            YtUrlFile = open(Path, 'w')
-            YtUrlFile.write("YT_url: ")
-            YtUrlFile.close()
-
-            DataFound = False
-            pass
-
-        if DataFound:
-            YTData = YtUrlFile.readlines()
-            if len(YTData) > 0:
-                self.YT_Url = YTData[0].replace("YT_url: ", '')
-
-            YtUrlFile.close()
-
-            self.YT_DataFound = True
-
-        else:
-            self.LLogger.LogError("YouTube Data cannot be read, pls check the config file!")
+    # def ReadTwitchData(self, Path):
+    #     self.LLogger.LogStatus("Reading Twitch data at: " + Path)
+    #
+    #     try:
+    #         FileTwitchAuthData = open(Path)
+    #         DataFound = True
+    #
+    #     except:
+    #         self.LLogger.LogStatus(f"'{Path}' doesn't exist, creating now")
+    #         FileTwitchAuthData = open(Path, 'w')
+    #         FileTwitchAuthData.write(
+    #             "nickname: \n\
+    #             token: \n\
+    #             channel: ".replace('    ', '')
+    #         )
+    #         FileTwitchAuthData.close()
+    #
+    #         DataFound = False
+    #         pass
+    #
+    #     if DataFound:
+    #         TwitchData = FileTwitchAuthData.readlines()
+    #
+    #         if len(TwitchData) >= 3:
+    #             self.TwitchAuth = TwitchAuthData(
+    #                 server="irc.chat.twitch.tv",
+    #                 port=6667,
+    #                 nickname=TwitchData[0].replace('nickname: ', ''),
+    #                 token=TwitchData[1].replace('token: ', ''),
+    #                 channel=TwitchData[2].replace('channel: ', '')
+    #             )
+    #             FileTwitchAuthData.close()
+    #
+    #             self.TWITCH_DataFound = True
+    #
+    #     else:
+    #         self.LLogger.LogError("Twitch Data cannot be read, pls check the config file!")
 
 
-    def ReadObsData(self, Path):
-        self.LLogger.LogStatus("Reading OBS data at: " + Path)
-        try:
-            ObsDataFile = open(Path)
-            DataFound = True
+    # def ReadYTData(self, Path):
+    #     self.LLogger.LogStatus("Reading YT data at: " + Path)
+    #     try:
+    #         YtUrlFile = open(Path)
+    #         DataFound = True
+    #
+    #     except:
+    #         self.LLogger.LogStatus(f"'{Path}' doesn't exist, creating now")
+    #         YtUrlFile = open(Path, 'w')
+    #         YtUrlFile.write("YT_url: ")
+    #         YtUrlFile.close()
+    #
+    #         DataFound = False
+    #         pass
+    #
+    #     if DataFound:
+    #         YTData = YtUrlFile.readlines()
+    #         if len(YTData) > 0:
+    #             self.YT_Url = YTData[0].replace("YT_url: ", '')
+    #
+    #         YtUrlFile.close()
+    #
+    #         self.YT_DataFound = True
+    #
+    #     else:
+    #         self.LLogger.LogError("YouTube Data cannot be read, pls check the config file!")
 
-        except:
-            self.LLogger.LogStatus(f"'{Path}' doesn't exist, creating now")
-            ObsDataFile = open(Path, 'w')
-            ObsDataFile.write("host: localhost\nport: 4455\npassword: ")
-            ObsDataFile.close()
 
-            DataFound = False
-            pass
-
-        if DataFound:
-            ObsAuthDataLines = ObsDataFile.readlines()
-
-            if len(ObsAuthDataLines) >= 3:
-
-                try:
-                    self.ObsAuth.host = ObsAuthDataLines[0].replace("host: ", '')
-                    self.ObsAuth.port = int(ObsAuthDataLines[1].replace("port: ", ''))
-                    self.ObsAuth.password = ObsAuthDataLines[2].replace("password: ", '')
-
-                    self.OBS_DataFound = True
-
-                except:
-                    self.LLogger.LogError("Invalid Obs Auth Data")
-                    self.OBS_DataFound = False
-                    pass
+    # def ReadObsData(self, Path):
+    #     self.LLogger.LogStatus("Reading OBS data at: " + Path)
+    #     try:
+    #         ObsDataFile = open(Path)
+    #         DataFound = True
+    #
+    #     except:
+    #         self.LLogger.LogStatus(f"'{Path}' doesn't exist, creating now")
+    #         ObsDataFile = open(Path, 'w')
+    #         ObsDataFile.write("host: localhost\nport: 4455\npassword: ")
+    #         ObsDataFile.close()
+    #
+    #         DataFound = False
+    #         pass
+    #
+    #     if DataFound:
+    #         ObsAuthDataLines = ObsDataFile.readlines()
+    #
+    #         if len(ObsAuthDataLines) >= 3:
+    #
+    #             try:
+    #                 self.ObsAuth.host = ObsAuthDataLines[0].replace("host: ", '')
+    #                 self.ObsAuth.port = int(ObsAuthDataLines[1].replace("port: ", ''))
+    #                 self.ObsAuth.password = ObsAuthDataLines[2].replace("password: ", '')
+    #
+    #                 self.OBS_DataFound = True
+    #
+    #             except:
+    #                 self.LLogger.LogError("Invalid Obs Auth Data")
+    #                 self.OBS_DataFound = False
+    #                 pass
 
 
     def ReadConfigData(self, Path):

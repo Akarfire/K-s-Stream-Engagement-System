@@ -38,6 +38,3 @@ class InstructionProcessor(CoreComponent_BusConnected):
                 else:
                     InstructionCallMessage = DataMessage(Executor, InDataMessage.SenderAddress, "IN", InDataMessage.Data)
                     self.TransmitData(InstructionCallMessage)
-                    # Instr = InDataMessage.Data["Head"]
-                    # Data = str(InDataMessage.Data["Data"])
-                    # self.MyCore.MyLogger.LogStatus(f"INSTRUCTION PROCESSOR: Sent Instruction Call: '{Instr}' to {Executor} : {Data}")

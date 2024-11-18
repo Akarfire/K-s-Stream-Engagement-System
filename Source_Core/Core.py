@@ -16,37 +16,15 @@ class CoreApp:
         # Communication Bus
         self.MyCommunicationBus = CommunicationBus(self)
 
-        # Loading Plugins
-        self.MyPluginManager = PluginManager(self, "Plugins")
-        self.MyPluginManager.LoadPlugins()
-
         # Instruction Processor
         self.MyInstructionProcessor = InstructionProcessor(self, "Instructions")
 
         # Init Config Controller
         self.MyConfigController = ConfigController(self, "Config", "Config")
 
-
-
-        # # Init PyGameWindow
-        # self.MyPyGameWindow = PyGameWindow()
-        #
-        # # Init TTS
-        # self.MyTTS = tts.TTS(self.MyConfigController, self.MyLogger)
-        #
-        # # Init OBS Interface
-        # self.MyObsInterface = ObsInterface(self.MyConfigController, self.MyLogger)
-        #
-        # # Init Command Processor
-        # self.MyCommandProcessor = CommandProcessor(self.MyConfigController, self.MyTTS, self.MyObsInterface, self.MyLogger)
-
-        # Init Chat Reader
-        #self.MyChatReader = ChatReader(self.MyConfigController, self.MyCommandProcessor, self.MyLogger)
-
-
-
-
-        # Init Plugins
+        # Loading Plugins
+        self.MyPluginManager = PluginManager(self, "Plugins")
+        self.MyPluginManager.LoadPlugins()
         self.MyPluginManager.InitPlugins()
 
         # Control Server

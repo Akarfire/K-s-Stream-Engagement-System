@@ -14,6 +14,14 @@ class YTChatReader(PluginImpl.PluginBase):
 
     def __init__(self):
         super().__init__()
+        self.Address = "YTChatReader"
+        self.ConfigSection = "YTChat"
+        self.Subscriptions = []
+        self.Instructions = []
+
+        self.YT_Url = ""
+        self.YT_DataFound = False
+
 
     def InitPlugin(self, InPluginManager):
         super().InitPlugin(InPluginManager)
@@ -63,7 +71,7 @@ class YTChatReader(PluginImpl.PluginBase):
             self.TransmitEvent("OnChatMessageArrived", self.MessageQueue.get())
 
     def ReceiveMessage(self, InDataMessage):
-        pass
+        super().ReceiveMessage(InDataMessage)
 
 
     def ParseYTMessage(self, InMessage):
@@ -75,6 +83,37 @@ class YTChatReader(PluginImpl.PluginBase):
         outMessage.Message = InMessage.message
 
         return outMessage
+
+
+    def ReadConfigData(self, InConfigFileLines):
+        self.ReadOptions(InConfigFileLines)
+
+        Path = "Config/YT_URL.txt"
+        self.LLogger.LogStatus("Reading YT data at: " + Path)
+        try:
+            YtUrlFile = open(Path)
+            DataFound = True
+
+        except:
+            self.LLogger.LogStatus(f"'{Path}' doesn't exist, creating now")
+            YtUrlFile = open(Path, 'w')
+            YtUrlFile.write("YT_url: ")
+            YtUrlFile.close()
+
+            DataFound = False
+            pass
+
+        if DataFound:
+            YTData = YtUrlFile.readlines()
+            if len(YTData) > 0:
+                self.YT_Url = YTData[0].replace("YT_url: ", '')
+
+            YtUrlFile.close()
+
+            self.YT_DataFound = True
+
+        else:
+            self.LLogger.LogError("YouTube Data cannot be read, pls check the config file!")
 
 
 # Async method for fetching chat
