@@ -12,8 +12,8 @@ from Source_Core import PluginImpl
 
 class YTChatReader(PluginImpl.PluginBase):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, InPluginManager):
+        super().__init__(InPluginManager)
         self.Address = "YTChatReader"
         self.ConfigSection = "YTChat"
         self.Subscriptions = []
@@ -22,13 +22,16 @@ class YTChatReader(PluginImpl.PluginBase):
         self.YT_Url = ""
         self.YT_DataFound = False
 
+        self.AddOption("Use_YT", True)
+        self.AddOption("Chat_Fetch_Frequency", 8)
 
-    def InitPlugin(self, InPluginManager):
-        super().InitPlugin(InPluginManager)
+
+    def InitPlugin(self):
+        super().InitPlugin()
 
         self.MyCore = self.MyPluginManager.MyCore
 
-        self.USE_YT = self.MyCore.MyConfigController.Options["Use_YT"] and self.MyCore.MyConfigController.YT_DataFound
+        self.USE_YT = self.GetOption("Use_YT") and self.YT_DataFound
 
         # Logger
         self.LLogger = self.MyCore.MyLogger
@@ -43,16 +46,13 @@ class YTChatReader(PluginImpl.PluginBase):
             IsYTChatRunning = False
             while not IsYTChatRunning:
                 try:
-                    self.YTChat = pytchat.create(video_id=self.MyCore.MyConfigController.YT_Url)
+                    self.YTChat = pytchat.create(video_id=self.YT_Url)
                     IsYTChatRunning = True
 
                 except Exception as e:
                     self.LLogger.LogError("Failed to connect to YT, attempting reconnection in 1 second: " + str(e))
                     time.sleep(1)
                     pass
-
-        # Config Controller
-        self.LConfigController = self.MyCore.MyConfigController
 
         # Async
         self.YTFetchThread = threading.Thread(target=AsyncUpdateYT, args=(self,), daemon=True)
@@ -129,4 +129,4 @@ def AsyncUpdateYT(InChatReader):
             else:
                 InChatReader.LLogger.LogError("YT chat's down!")
 
-        time.sleep(1 / InChatReader.LConfigController.Options["Chat_Fetch_Frequency"])
+        time.sleep(1 / InChatReader.GetOption("Chat_Fetch_Frequency"))

@@ -13,31 +13,35 @@ class ObsAuthData:
 
 class ObsWebsocket(PluginImpl.PluginBase):
 
-    def __init__(self):
-        super().__init__()
-
+    def __init__(self, InPluginManager):
+        super().__init__(InPluginManager)
+        self.LLogger = self.MyPluginManager.LLogger
         self.Address = "ObsWebsocket"
         self.ConfigSection = "OBS"
         self.Subscriptions = []
         self.Instructions = ["OBS_SetFilterEnabled", "OBS_SetItemEnabled"]
+        self.Enabled = False
 
         self.ObsAuth = ObsAuthData("localhost", 4455, "password")
+        self.OBS_DataFound = False
+
+        self.AddOption("Use_OBS", True)
 
 
-    def InitPlugin(self, InPluginManager):
-        super().InitPlugin(InPluginManager)
+    def InitPlugin(self):
+        super().InitPlugin()
 
         # Data
         self.LConfigController = self.MyCore.MyConfigController
-        self.AuthData = self.LConfigController.ObsAuth
+        #self.AuthData = self.LConfigController.ObsAuth
 
         self.LLogger = self.MyCore.MyLogger
 
-        self.Enabled = self.LConfigController.OBS_DataFound and self.LConfigController.Options["Use_OBS"]
+        self.Enabled = self.OBS_DataFound and self.GetOption("Use_OBS")
 
         if self.Enabled:
 
-            url = "ws://{}:{}".format(self.AuthData.host, self.AuthData.port)
+            url = "ws://{}:{}".format(self.ObsAuth.host, self.ObsAuth.port)
             self.ObsWS = websocket.WebSocket()
 
             try:

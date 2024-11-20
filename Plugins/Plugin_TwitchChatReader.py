@@ -20,8 +20,8 @@ class TwitchAuthData:
 
 class TwitchChatReader(PluginImpl.PluginBase):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, InPluginManager):
+        super().__init__(InPluginManager)
         self.Address = "TwitchChatReader"
         self.ConfigSection = "TwitchChat"
         self.Subscriptions = []
@@ -30,13 +30,16 @@ class TwitchChatReader(PluginImpl.PluginBase):
         self.TwitchAuth = TwitchAuthData("", 0, "", "", "")
         self.TWITCH_DataFound = False
 
+        self.AddOption("Use_Twitch", True)
+        self.AddOption("Chat_Fetch_Frequency", 8)
 
-    def InitPlugin(self, InPluginManager):
-        super().InitPlugin(InPluginManager)
+
+    def InitPlugin(self):
+        super().InitPlugin()
 
         self.MyCore = self.MyPluginManager.MyCore
 
-        self.USE_TWITCH = self.MyCore.MyConfigController.Options["Use_Twitch"] and self.MyCore.MyConfigController.TWITCH_DataFound
+        self.USE_TWITCH = self.GetOption("Use_Twitch") and self.TWITCH_DataFound
 
         # Logger
         self.LLogger = self.MyCore.MyLogger
@@ -51,18 +54,15 @@ class TwitchChatReader(PluginImpl.PluginBase):
 
             try:
                 self.TwitchSocket = socket.socket()
-                self.TwitchSocket.connect((self.MyCore.MyConfigController.TwitchAuth.server, self.MyCore.MyConfigController.TwitchAuth.port))
+                self.TwitchSocket.connect((self.TwitchAuth.server, self.TwitchAuth.port))
                 self.TwitchSocket.setblocking(False)
 
-                self.TwitchSocket.send(f"PASS {self.MyCore.MyConfigController.TwitchAuth.token}\n".encode('utf-8'))
-                self.TwitchSocket.send(f"NICK {self.MyCore.MyConfigController.TwitchAuth.nickname}\n".encode('utf-8'))
-                self.TwitchSocket.send(f"JOIN {self.MyCore.MyConfigController.TwitchAuth.channel}\n".encode('utf-8'))
+                self.TwitchSocket.send(f"PASS {self.TwitchAuth.token}\n".encode('utf-8'))
+                self.TwitchSocket.send(f"NICK {self.TwitchAuth.nickname}\n".encode('utf-8'))
+                self.TwitchSocket.send(f"JOIN {self.TwitchAuth.channel}\n".encode('utf-8'))
 
             except Exception as e:
                 self.LLogger.LogError("Failed to connect to TWITCH! : " + str(e))
-
-        # Config Controller
-        self.LConfigController = self.MyCore.MyConfigController
 
         # Async
         self.TwitchFetchThread = threading.Thread(target=AsyncUpdateTwitch, args=(self,), daemon=True)
@@ -163,4 +163,4 @@ def AsyncUpdateTwitch(InChatReader):
                 elif len(resp) > 0:
                     InChatReader.MessageQueue.put(InChatReader.ParseTwitchMessage(resp))
 
-        time.sleep(1 / InChatReader.LConfigController.Options["Chat_Fetch_Frequency"])
+        time.sleep(1 / InChatReader.GetOption("Chat_Fetch_Frequency"))

@@ -2,16 +2,16 @@ from Source_Core import PluginImpl
 
 class SamplePlugin(PluginImpl.PluginBase):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, InPluginManager):
+        super().__init__(InPluginManager)
 
         #self.Address = ...
         self.ConfigSection = ""
         self.Subscriptions = []
         self.Instructions = []
 
-    def InitPlugin(self, InPluginManager):
-        super().InitPlugin(InPluginManager)
+    def InitPlugin(self):
+        super().InitPlugin()
 
     def DeletePlugin(self):
         pass
@@ -24,4 +24,7 @@ class SamplePlugin(PluginImpl.PluginBase):
 
     def ReadConfigData(self, InConfigFileLines):
         self.ReadOptions(InConfigFileLines)
+
+    def InitPluginConfig(self):
+        return self.InitOptionsConfig()
 

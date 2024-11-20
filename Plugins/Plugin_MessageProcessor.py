@@ -4,16 +4,18 @@ from Source_Core.Types import ChatMessage
 
 class MessageProcessor(PluginImpl.PluginBase):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, InPluginManager):
+        super().__init__(InPluginManager)
         self.Address = "MessageProcessor"
         self.ConfigSection = "MessageProcessor"
         self.Subscriptions = ["OnChatMessageArrived"]
         self.Instructions = []
 
+        self.AddOption("Filter_Tolerance", 1.0)
 
-    def InitPlugin(self, InPluginManager):
-        super().InitPlugin(InPluginManager)
+
+    def InitPlugin(self):
+        super().InitPlugin()
 
         # Initial Info Print
         self.MyPluginManager.LLogger.LogStatus(
@@ -47,7 +49,7 @@ class MessageProcessor(PluginImpl.PluginBase):
     def FilterMessage(self, Message):
 
         #self.LConfigController.Options["Filter_Tolerance"]
-        FILTERED = predict_prob([Message])[0] > 0.85
+        FILTERED = predict_prob([Message])[0] > self.GetOption("Filter_Tolerance")
 
         if FILTERED:
             self.MyPluginManager.LLogger.LogStatus("Message Filtered!")

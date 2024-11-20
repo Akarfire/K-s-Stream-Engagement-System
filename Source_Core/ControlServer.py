@@ -1,14 +1,15 @@
 import socket
 import threading
 import queue
-from Source_Core.Types import ChatMessage
+from Source_Core.Types import ChatMessage, DataMessage
+from Source_Core.CommunicationBus import CoreComponent_BusConnected
 
-class ControlServer():
+class ControlServer(CoreComponent_BusConnected):
 
-    def __init__(self, InLogger, InCommandProcessor):
+    def __init__(self, InCore, InAdress):
+        super().__init__(InCore, InAdress)
 
-        self.LLogger = InLogger
-        self.LCommandProcessor = InCommandProcessor
+        self.LLogger = self.MyCore.MyLogger
 
         self.Host = "127.0.0.1"
         self.Port = 22222
@@ -27,7 +28,8 @@ class ControlServer():
             Task = self.TaskQueue.get()
 
             CMsg = ChatMessage("CONTROL SERVER", "-", "CONTROL SERVER", str(Task))
-            self.LCommandProcessor.ScanAndExecuteMessageCommands(CMsg, False)
+            InstructionCallMessage = DataMessage("Instructions", self.Address, "IN", {"Head" : "COMMAND_ProcessMessageCommands", "Data" : {"Message" : CMsg, "WasFiltered" : False}})
+            self.TransmitData(InstructionCallMessage)
 
 
     def ParseTaskMessage(self, InTaskMessage):

@@ -28,7 +28,7 @@ class CoreApp:
         self.MyPluginManager.InitPlugins()
 
         # Control Server
-        #self.MyControlServer = ControlServer(self.MyLogger)
+        self.MyControlServer = ControlServer(self, "ControlServer")
 
         # Main Loop
         self.MyLogger.NewLogSegment("RUNTIME")
@@ -49,9 +49,7 @@ class CoreApp:
 
                 # Runtime Logic
                 self.MyPluginManager.UpdatePlugins(self.DeltaTime)
-
-                #self.MyChatReader.MainThreadUpdate()
-                #self.MyControlServer.UpdateControlServer()
+                self.MyControlServer.UpdateControlServer()
 
                 # Sleep
                 time.sleep(self.TimeBetweenFrames)

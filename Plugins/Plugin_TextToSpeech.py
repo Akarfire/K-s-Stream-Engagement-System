@@ -8,8 +8,8 @@ from pathlib import Path
 
 class TextToSpeech(PluginImpl.PluginBase):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, InPluginManager):
+        super().__init__(InPluginManager)
 
         self.Address = "TextToSpeech"
         self.ConfigSection = "TTS"
@@ -22,9 +22,13 @@ class TextToSpeech(PluginImpl.PluginBase):
         self.LLogger = None
         self.FinishEventTimers = dict()
 
+        self.AddOption("Use_TTS", True)
+        self.AddOption("TTS_Volume", 1.0)
+        self.AddOption("SFX_Volume", 1.0)
 
-    def InitPlugin(self, InPluginManager):
-        super().InitPlugin(InPluginManager)
+
+    def InitPlugin(self):
+        super().InitPlugin()
 
         # Pygame Init
         pygame.init()
@@ -86,13 +90,14 @@ class TextToSpeech(PluginImpl.PluginBase):
                 self.FinishEventTimers[InDataMessage.Data["Data"]["UID"]] = {"Event" : "TTS_FinishedPlayingTTS", "Timer" : Time}
 
             elif InDataMessage.Data["Head"] == "TTS_PlaySFX":
-                Time = self.PlaySound(InDataMessage.Data["Data"]["File"], InDataMessage.Data["Data"]["Volume"])
+                Time = self.PlaySound(InDataMessage.Data["Data"]["File"], InDataMessage.Data["Data"]["Volume"] * self.GetOption("SFX_Volume"))
                 self.FinishEventTimers[InDataMessage.Data["Data"]["UID"]] = {"Event": "TTS_FinishedPlayingSFX", "Timer": Time}
 
 
     # Converts text to speech using gTTS
     def ConvertTTS(self, txt, lg='en'):
-        if len(txt) > 0:
+
+        if self.GetOption("Use_TTS") and len(txt) > 0:
             try:
                 # Inits gTTS and converts
                 MyTTS = gTTS(text=txt, lang=lg, slow=False)
@@ -106,11 +111,13 @@ class TextToSpeech(PluginImpl.PluginBase):
 
     def PlayTTS(self):
 
-        # Plays last converetd TTS file
-        return self.PlaySound("TmpFiles/TTS_Audio.mp3", 1.25)
+        if self.GetOption("Use_TTS"):
+            # Plays last converetd TTS file
+            return self.PlaySound("TmpFiles/TTS_Audio.mp3", self.GetOption("TTS_Volume"))
 
 
     def PlaySound(self, file, Volume=1.0):
+
         try:
             Sound = pygame.mixer.Sound(file)
             Sound.set_volume(Volume)

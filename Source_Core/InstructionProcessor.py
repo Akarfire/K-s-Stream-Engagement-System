@@ -28,8 +28,10 @@ class InstructionProcessor(CoreComponent_BusConnected):
 
         if InDataMessage.DataType == "IN":
             if InDataMessage.Data["Head"] in self.Instructions:
+
                 # Instr = InDataMessage.Data["Head"]
                 # self.MyCore.MyLogger.LogStatus(f"INSTRUCTION PROCESSOR: Received Instruction: '{Instr}'")
+
                 Executor = self.Instructions[InDataMessage.Data["Head"]]
 
                 if Executor == "CORE":

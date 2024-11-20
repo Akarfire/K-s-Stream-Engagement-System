@@ -1,7 +1,38 @@
 from Source_Core import PluginImpl
 import queue
-from Source_Core.Types import Command
 from Source_Core.Types import DataMessage
+
+
+class Command:
+    def __init__(self, InName, InCalls, InAtr):
+        self.Name = InName
+        self.Calls = InCalls
+        self.Atr = InAtr
+        self.Processor = None
+
+        self.FinishOnTimer = True
+        self.Timer = 0
+        if "time" in self.Atr:
+            self.Timer = self.Atr["time"]
+
+    def AssignProcessor(self, InProcessor):
+        self.Processor = InProcessor
+
+    def Update(self, DeltaTime):
+        if self.FinishOnTimer:
+            self.Timer -= DeltaTime
+            if self.Timer <= 0:
+                self.FinishExecution()
+
+    def ExecuteCommand(self, InChatMessage):
+        pass
+
+    def FinishExecution(self):
+        self.Processor.OnCurrentCommandFinished()
+
+    def OnProcessorReceivedEventNotification(self, InDataMessage):
+        pass
+
 
 
 class QueuedCommand:
@@ -10,10 +41,11 @@ class QueuedCommand:
         self.Message = InChatMessage
 
 
+
 class CommandProcessor(PluginImpl.PluginBase):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, InPluginManager):
+        super().__init__(InPluginManager)
 
         self.Address = "CommandProcessor"
         self.ConfigSection = "Commands"
@@ -32,8 +64,8 @@ class CommandProcessor(PluginImpl.PluginBase):
         self.ActiveCommand = None
 
 
-    def InitPlugin(self, InPluginManager):
-        super().InitPlugin(InPluginManager)
+    def InitPlugin(self):
+        super().InitPlugin()
 
         self.LLogger = self.MyCore.MyLogger
         self.LLogger.NewLogSegment("Init Command Processor")
@@ -59,6 +91,7 @@ class CommandProcessor(PluginImpl.PluginBase):
 
                 self.HasActiveCommand = True
 
+
         else:
             self.ActiveCommand.Update(DeltaSeconds)
 
@@ -67,32 +100,15 @@ class CommandProcessor(PluginImpl.PluginBase):
 
         super().ReceiveMessage(InDataMessage)
 
-        if InDataMessage.DataType == "CB" and InDataMessage.Data["Head"] == "Request_CommandList":
-            self.InitCommandList(InDataMessage.Data["Data"])
-
-        elif InDataMessage.DataType == "EVN":
+        if InDataMessage.DataType == "EVN":
             if self.HasActiveCommand:
                 self.ActiveCommand.OnProcessorReceivedEventNotification(InDataMessage)
 
         elif InDataMessage.DataType == "IN":
 
             if InDataMessage.Data["Head"] == "COMMAND_ProcessMessageCommands":
-                self.ScanAndExecuteMessageCommands(InDataMessage.Data["Data"]["Message"], InDataMessage.Data["Data"]["WasFiltered"])
-
-
-    def InitCommandList(self, InCommandList):
-
-        for com in InCommandList:
-            self.Commands[InCommandList[com]["Name"]] = AssignCommand(InCommandList[com]["Name"], InCommandList[com]["Calls"], InCommandList[com]["Atr"])
-
-        for c in self.Commands:
-            self.Commands[c].AssignProcessor(self)
-
-        # Processing Commands
-        for com in self.Commands:
-            for call in self.Commands[com].Calls:
-                self.CommandCalls[call] = self.Commands[com].Name
-                self.CallLengths.add(len(call))
+                self.ScanAndExecuteMessageCommands(InDataMessage.Data["Data"]["Message"],
+                                                   InDataMessage.Data["Data"]["WasFiltered"])
 
 
     def OnCurrentCommandFinished(self):
@@ -149,6 +165,81 @@ class CommandProcessor(PluginImpl.PluginBase):
         return MsgCommands, OutMessage
 
 
+    def ReadConfigData(self, InConfigFileLines):
+
+        i = 0
+        CurrentCommandLines = []
+        while i < len(InConfigFileLines):
+            if InConfigFileLines[i] != '':
+
+                if InConfigFileLines[i].replace(' ', '') == '-':
+                    self.ProcessCommandLines(CurrentCommandLines)
+                    CurrentCommandLines = []
+
+                else:
+                    CurrentCommandLines.append(InConfigFileLines[i])
+
+            i += 1
+
+        if len(CurrentCommandLines) > 0:
+            self.ProcessCommandLines(CurrentCommandLines)
+
+
+    def ProcessCommandLines(self, CommandLines):
+
+        Name = ""
+        Calls = set()
+        Atr = {}
+        Error = False
+
+        for line in CommandLines:
+            if line.count(':') == 1:
+                Param, Values = line.replace(' ', '').split(':')
+
+                if Param == "name":
+                    # If name is already set
+                    if Name != '':
+                        self.LLogger.LogError("COMMAND PROCESSOR: Tried to declare a command with multiple names: " + line)
+                        Error = True
+                        break
+
+                    Name = Values
+                    Calls.add(Name)
+
+                if Param == "calls":
+                    for call in Values.split(','):
+                        Calls.add(call.upper())
+
+                if Param == "atr":
+                    for atr in Values.split(','):
+                        if '=' in atr:
+
+                            atr_name, atr_value_data = atr.split('=')
+
+                            # Processing attribute types
+                            if "[b]" in atr_value_data:
+                                Atr[atr_name] = atr_value_data.replace('[b]', '').lower() == "true"
+
+                            elif "[i]" in atr_value_data:
+                                Atr[atr_name] = int(atr_value_data.replace('[i]', ''))
+
+                            elif "[f]" in atr_value_data:
+                                Atr[atr_name] = float(atr_value_data.replace('[f]', ''))
+
+                            if "[s]" in atr_value_data:
+                                Atr[atr_name] = atr_value_data.replace('[s]', '')
+
+                        else:
+                            Atr[atr] = True
+
+        if not Error:
+            self.Commands[Name] = AssignCommand(Name, Calls, Atr)
+            self.Commands[Name].AssignProcessor(self)
+
+            for call in Calls:
+                self.CommandCalls[call] = self.Commands[Name].Name
+                self.CallLengths.add(len(call))
+
 
 def AssignCommand(InName, InCalls, InAtr):
 
@@ -189,8 +280,6 @@ class Command_PlaySound(Command):
     def ExecuteCommand(self, InChatMessage):
         self.FinishOnTimer = False
         self.GifName = ""
-
-        self.Processor.LLogger.LogStatus("Executing play sound")
 
         Volume = 1.0
         if "volume" in self.Atr:

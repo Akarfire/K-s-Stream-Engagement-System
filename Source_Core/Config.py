@@ -1,6 +1,8 @@
 from numpy.f2py.auxfuncs import throw_error
 from select import select
-from Source_Core.Types import Command, TwitchAuthData, ObsAuthData, DataMessage
+from traitlets.config import Config
+
+from Source_Core.Types import DataMessage
 from Source_Core.CommunicationBus import CoreComponent_BusConnected
 from pathlib import Path
 
@@ -9,156 +11,49 @@ class ConfigController(CoreComponent_BusConnected):
     def __init__(self, InCore, InAddress, ConfigFolder):
         super().__init__(InCore, InAddress)
 
+        self.Path = ConfigFolder
+
         self.LLogger = self.MyCore.MyLogger
         self.LLogger.NewLogSegment("Loading Config Data")
 
-        # Default Values
-        self.TwitchAuth = TwitchAuthData("", 0, "", "", "")
-        self.YT_Url = ""
-        self.ObsAuth = ObsAuthData("localhost", 4455, "password")
 
         # Options Map
         self.DefaultOptions = \
             {
-            "Use_YT" : True,
-            "Use_Twitch" : True,
-            "Use_OBS" : True,
-            "Filter_Tolerance" : 0.85,
-            "TTS_Volume" : 1.0,
-            "SFX_Volume" : 1.0,
-            "Update_Frequency" : 4,
-            "Chat_Fetch_Frequency" : 4
+            "Main_Update_Frequency" : 4,
             }
 
         self.Options = self.DefaultOptions
-
-        self.TWITCH_DataFound = False
-        self.YT_DataFound = False
-        self.OBS_DataFound = False
+        self.PluginConfigSegments = dict()
 
         # Creating Directory
         Path(ConfigFolder).mkdir(parents=True, exist_ok=True)
-
-        # Command Map:
-        self.Commands = {}
-
-        # Twitch Chat Data
-        # self.ReadTwitchData(ConfigFolder + "/TWITCH_AUTH.txt")
-
-        # YT Chat Data
-        # self.ReadYTData(ConfigFolder + "/YT_URL.txt")
-
-        # OBS Auth Data
-        # self.ReadObsData(ConfigFolder + "/OBS_AUTH.txt")
 
         # Config Data
         self.ReadConfigData(ConfigFolder + "/Config.txt")
 
 
     def ReceivedData(self, InDataMessage):
-        if InDataMessage.Data["Head"] == "Request_CommandList":
-            CallbackMessage = DataMessage(InDataMessage.SenderAddress, self.Address, "CB", {"Head" : "Request_CommandList", "Data" : self.Commands})
-            self.TransmitData(CallbackMessage)
 
+        if InDataMessage.DataType == "RE" and InDataMessage.Data["Head"] == "PluginConfigRequest":
+            ConfigSection = InDataMessage.Data["Data"]["ConfigSection"]
 
-    # def ReadTwitchData(self, Path):
-    #     self.LLogger.LogStatus("Reading Twitch data at: " + Path)
-    #
-    #     try:
-    #         FileTwitchAuthData = open(Path)
-    #         DataFound = True
-    #
-    #     except:
-    #         self.LLogger.LogStatus(f"'{Path}' doesn't exist, creating now")
-    #         FileTwitchAuthData = open(Path, 'w')
-    #         FileTwitchAuthData.write(
-    #             "nickname: \n\
-    #             token: \n\
-    #             channel: ".replace('    ', '')
-    #         )
-    #         FileTwitchAuthData.close()
-    #
-    #         DataFound = False
-    #         pass
-    #
-    #     if DataFound:
-    #         TwitchData = FileTwitchAuthData.readlines()
-    #
-    #         if len(TwitchData) >= 3:
-    #             self.TwitchAuth = TwitchAuthData(
-    #                 server="irc.chat.twitch.tv",
-    #                 port=6667,
-    #                 nickname=TwitchData[0].replace('nickname: ', ''),
-    #                 token=TwitchData[1].replace('token: ', ''),
-    #                 channel=TwitchData[2].replace('channel: ', '')
-    #             )
-    #             FileTwitchAuthData.close()
-    #
-    #             self.TWITCH_DataFound = True
-    #
-    #     else:
-    #         self.LLogger.LogError("Twitch Data cannot be read, pls check the config file!")
+            if ConfigSection != "":
+                if ConfigSection in self.PluginConfigSegments:
+                    CallBackMessage = DataMessage(InDataMessage.SenderAddress, self.Address, "CB", {"Head" : "PluginConfigRequest", "Data" : {"ConfigLines" : self.PluginConfigSegments[ConfigSection]}})
+                    self.TransmitData(CallBackMessage)
 
+                else:
+                    InitConfigRequestMessage = DataMessage(InDataMessage.SenderAddress, self.Address, "RE", {"Head" : "PluginInitConfigRequest", "Data" : {}})
+                    self.TransmitData(InitConfigRequestMessage)
 
-    # def ReadYTData(self, Path):
-    #     self.LLogger.LogStatus("Reading YT data at: " + Path)
-    #     try:
-    #         YtUrlFile = open(Path)
-    #         DataFound = True
-    #
-    #     except:
-    #         self.LLogger.LogStatus(f"'{Path}' doesn't exist, creating now")
-    #         YtUrlFile = open(Path, 'w')
-    #         YtUrlFile.write("YT_url: ")
-    #         YtUrlFile.close()
-    #
-    #         DataFound = False
-    #         pass
-    #
-    #     if DataFound:
-    #         YTData = YtUrlFile.readlines()
-    #         if len(YTData) > 0:
-    #             self.YT_Url = YTData[0].replace("YT_url: ", '')
-    #
-    #         YtUrlFile.close()
-    #
-    #         self.YT_DataFound = True
-    #
-    #     else:
-    #         self.LLogger.LogError("YouTube Data cannot be read, pls check the config file!")
+        elif InDataMessage.DataType == "CB" and InDataMessage.Data["Head"] == "PluginInitConfigRequest":
+            self.InitConfigSection(InDataMessage.Data["Data"]["ConfigSectionName"], InDataMessage.Data["Data"]["ConfigLines"])
 
-
-    # def ReadObsData(self, Path):
-    #     self.LLogger.LogStatus("Reading OBS data at: " + Path)
-    #     try:
-    #         ObsDataFile = open(Path)
-    #         DataFound = True
-    #
-    #     except:
-    #         self.LLogger.LogStatus(f"'{Path}' doesn't exist, creating now")
-    #         ObsDataFile = open(Path, 'w')
-    #         ObsDataFile.write("host: localhost\nport: 4455\npassword: ")
-    #         ObsDataFile.close()
-    #
-    #         DataFound = False
-    #         pass
-    #
-    #     if DataFound:
-    #         ObsAuthDataLines = ObsDataFile.readlines()
-    #
-    #         if len(ObsAuthDataLines) >= 3:
-    #
-    #             try:
-    #                 self.ObsAuth.host = ObsAuthDataLines[0].replace("host: ", '')
-    #                 self.ObsAuth.port = int(ObsAuthDataLines[1].replace("port: ", ''))
-    #                 self.ObsAuth.password = ObsAuthDataLines[2].replace("password: ", '')
-    #
-    #                 self.OBS_DataFound = True
-    #
-    #             except:
-    #                 self.LLogger.LogError("Invalid Obs Auth Data")
-    #                 self.OBS_DataFound = False
-    #                 pass
+            CallBackMessage = DataMessage(InDataMessage.SenderAddress, self.Address, "CB",
+                                          {"Head": "PluginConfigRequest",
+                                           "Data": {"ConfigLines": self.PluginConfigSegments[InDataMessage.Data["Data"]["ConfigSectionName"]]}})
+            self.TransmitData(CallBackMessage)
 
 
     def ReadConfigData(self, Path):
@@ -181,10 +76,9 @@ class ConfigController(CoreComponent_BusConnected):
                 self.InitConfigFile(Path)
 
             # Now, when the file is valid we can read it
-            # First, we split it into 2 sections: Options and Commands
-            if "#Options" in ConfigLines:
-
-                i = ConfigLines.index("#Options") + 1
+            # First, we read Core Options
+            if "#Core" in ConfigLines:
+                i = ConfigLines.index("#Core") + 1
                 while ConfigLines[i] != '#' and i < len(ConfigLines):\
 
                     OptionLine = ConfigLines[i]
@@ -193,25 +87,28 @@ class ConfigController(CoreComponent_BusConnected):
 
                     i += 1
 
-            # Now to read the commands
-            if "#Commands" in ConfigLines:
+            # Then we read plugin configs
+            CurrentConfigSection = ""
+            CurrentSectionLines = []
+            for i in range(len(ConfigLines)):
 
-                CurrentCommandLines = []
-                i = ConfigLines.index("#Commands") + 1
-                while ConfigLines[i] != '#' and i < len(ConfigLines):
-                    if ConfigLines[i] != '':
+                if CurrentConfigSection != "" and ConfigLines[i].count('#') == 0:
+                    CurrentSectionLines.append(ConfigLines[i])
 
-                        if ConfigLines[i].replace(' ', '') == '-':
-                            self.ProcessCommandLines(CurrentCommandLines)
-                            CurrentCommandLines = []
+                elif ConfigLines[i].count('#') == 1:
 
-                        else:
-                            CurrentCommandLines.append(ConfigLines[i])
+                    if CurrentConfigSection != "":
+                        self.PluginConfigSegments[CurrentConfigSection] = CurrentSectionLines.copy()
+                        CurrentConfigSection = ""
+                        CurrentSectionLines.clear()
 
-                    i += 1
+                    if len(ConfigLines[i].replace('#', '')) > 0:
+                        CurrentConfigSection = ConfigLines[i].replace('#', '').replace('\n', '')
 
-                if len(CurrentCommandLines) > 0:
-                    self.ProcessCommandLines(CurrentCommandLines)
+            if CurrentConfigSection != "":
+                self.PluginConfigSegments[CurrentConfigSection] = CurrentSectionLines
+
+        ConfigFile.close()
 
 
     def ProcessOptionLine(self, OptionLine):
@@ -232,51 +129,6 @@ class ConfigController(CoreComponent_BusConnected):
         else:
             self.Options[Name] = Value
 
-
-    def ProcessCommandLines(self, CommandLines):
-        Name = ""
-        Calls = set()
-        Atr = {}
-
-        for line in CommandLines:
-            if line.count(':') == 1:
-                Param, Values = line.replace(' ', '').split(':')
-
-                if Param == "name":
-                    # If name is already set
-                    if Name != '':
-                        throw_error("Tried to declare a command with multiple names: " + line)
-
-                    Name = Values
-                    Calls.add(Name)
-
-                if Param == "calls":
-                    for call in Values.split(','):
-                        Calls.add(call.upper())
-
-                if Param == "atr":
-                    for atr in Values.split(','):
-                        if '=' in atr:
-
-                            atr_name, atr_value_data = atr.split('=')
-
-                            # Processing attribute types
-                            if "[b]" in atr_value_data:
-                                Atr[atr_name] = atr_value_data.replace('[b]', '').lower() == "true"
-
-                            elif "[i]" in atr_value_data:
-                                Atr[atr_name] = int(atr_value_data.replace('[i]', ''))
-
-                            elif "[f]" in atr_value_data:
-                                Atr[atr_name] = float(atr_value_data.replace('[f]', ''))
-
-                            if "[s]" in atr_value_data:
-                                Atr[atr_name] = atr_value_data.replace('[s]', '')
-
-                        else:
-                            Atr[atr] = True
-
-        self.Commands[Name] = {"Name" : Name, "Calls" : Calls, "Atr" : Atr}
 
 
     def InitConfigFile(self, Path):
@@ -299,5 +151,18 @@ class ConfigController(CoreComponent_BusConnected):
             #Commands\n\
             #\n").replace('  ', '')
         )
+        ConfigFile.close()
+
+
+    def InitConfigSection(self, InSectionName, InSectionLines):
+        self.PluginConfigSegments[InSectionName] = InSectionLines
+
+        ConfigFile = open(self.Path + "/Config.txt", "a")
+
+        ConfigFile.write("\n#" + InSectionName + "\n")
+        for i in InSectionLines:
+            ConfigFile.write(i)
+        ConfigFile.write("#\n")
+
         ConfigFile.close()
 

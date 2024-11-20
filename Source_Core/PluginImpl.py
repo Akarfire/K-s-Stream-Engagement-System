@@ -13,8 +13,11 @@ class PluginBase:
 
     PluginList = []
 
-    def __init__(self):
-        self.MyCore = None
+    def __init__(self, InPluginManager):
+
+        self.MyPluginManager = InPluginManager
+        self.LLogger = self.MyPluginManager.LLogger
+        self.MyCore = InPluginManager.MyCore
         self.Address = "Plugin" + str(random.randint(10000, 99999))
         self.ConfigSection = ""
         self.Config = {"Options" : {}}
@@ -26,9 +29,8 @@ class PluginBase:
         super().__init_subclass__(**kwargs)
         cls.PluginList.append(cls)
 
-    def InitPlugin(self, InPluginManager): # OVERRIDE
-        self.MyPluginManager = InPluginManager
-        self.MyCore = InPluginManager.MyCore
+    def InitPlugin(self): # OVERRIDE
+        pass
 
     def TransmitMessage(self, InReceiverAddress, InType, InData):
         RequestDataMessage = DataMessage(InReceiverAddress, self.Address, InType, InData)
@@ -50,11 +52,14 @@ class PluginBase:
 
     def ReceiveMessage(self, InDataMessage): # OVERRIDE
         if InDataMessage.DataType == "CB" and InDataMessage.Data["Head"] == "PluginConfigRequest":
-            self.ReadConfigData(InDataMessage.Data["Data"])
+            self.ReadConfigData(InDataMessage.Data["Data"]["ConfigLines"])
+
+        elif InDataMessage.DataType == "RE" and InDataMessage.Data["Head"] == "PluginInitConfigRequest":
+            self.TransmitMessage(InDataMessage.SenderAddress, "CB", {"Head" : "PluginInitConfigRequest", "Data" : {"ConfigSectionName" : self.ConfigSection, "ConfigLines" : self.InitPluginConfig()}})
         # Override
 
     def RequestConfigData(self):
-        self.TransmitMessage("Config", "RE", {"Head" : "PluginConfigRequest", "Data" : self.ConfigSection})
+        self.TransmitMessage("Config", "RE", {"Head" : "PluginConfigRequest", "Data" : {"ConfigSection" : self.ConfigSection}})
 
     def ReadConfigData(self, InConfigFileLines): # OVERRIDE
         self.ReadOptions(InConfigFileLines)
@@ -87,6 +92,34 @@ class PluginBase:
 
             i += 1
 
+    def InitPluginConfig(self):
+        return self.InitOptionsConfig()
+
+
+    def InitOptionsConfig(self):
+        OptionLines = []
+        for i in self.Config["Options"]:
+            OptionLines.append(i + " = " + '[' + type(self.Config["Options"][i]).__name__[0] + ']' + str(self.Config["Options"][i]).lower() + "\n")
+
+        return OptionLines
+
+
+    def AddOption(self, InOptionName, InDefaultValue):
+
+        if not "Options" in self.Config:
+            self.Config["Options"] = dict()
+
+        self.Config["Options"][InOptionName] = InDefaultValue
+
+
+    def GetOption(self, InOptionName):
+
+        if "Options" in self.Config:
+            if InOptionName in self.Config["Options"]:
+                return self.Config["Options"][InOptionName]
+
+        self.LLogger.LogError(f"{self.Address.upper()}: Has no options named {InOptionName}")
+        return None
 
 
 class PluginManager(CoreComponent_BusConnected):
@@ -128,7 +161,7 @@ class PluginManager(CoreComponent_BusConnected):
     def InitPlugins(self):
 
         for p in PluginBase.PluginList:
-            Inst = p()
+            Inst = p(self)
 
             Address = "PLUGIN_" + Inst.Address
             Inst.Address = Address
@@ -136,7 +169,7 @@ class PluginManager(CoreComponent_BusConnected):
             self.MyCommunicationBus.RegisterAddress(Address, self)
 
             Inst.RequestConfigData()
-            Inst.InitPlugin(self)
+            Inst.InitPlugin()
             self.Plugins.append(Inst)
 
             for Sub in Inst.Subscriptions:
