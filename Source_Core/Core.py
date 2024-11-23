@@ -13,11 +13,11 @@ class CoreApp:
         # Init Logger
         self.MyLogger = Logger()
 
-        # Init Config Controller
-        self.MyConfigController = ConfigController(self, "Config", "Config")
-
         # Communication Bus
         self.MyCommunicationBus = CommunicationBus(self)
+
+        # Init Config Controller
+        self.MyConfigController = ConfigController(self, "Config", "Config")
 
         # Instruction Processor
         self.MyInstructionProcessor = InstructionProcessor(self, "Instructions")

@@ -81,14 +81,14 @@ class InstructionProcessor(CoreComponent_BusConnected):
                 if CurrentMacroData.MacroName != "":
                     self.Macros[CurrentMacroData.MacroName] = CurrentMacroData
 
-            elif Line.startwith("name:"):
+            elif Line.startswith("name:"):
                 CurrentMacroData.MacroName = Line.replace("name:", '')
 
-            elif Line.startwith("args:"):
+            elif Line.startswith("args:"):
                 for Arg in Line.replace("args:", '').split(','):
                     CurrentMacroData.Arguments.add(Arg)
 
-            elif Line.startwith("instr:"):
+            elif Line.startswith("instr:"):
                 InstructionSection = True
                 InstructionCode += Line.replace("instr:", '')
 
