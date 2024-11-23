@@ -82,7 +82,7 @@ class ObsWebsocket(PluginImpl.PluginBase):
 
     def GenerateAuthString(self, Challenge, Salt):
 
-        Base64Secret = base64.b64encode(hashlib.sha256((self.AuthData.password + Salt).encode("utf-8")).digest())
+        Base64Secret = base64.b64encode(hashlib.sha256((self.ObsAuth.password + Salt).encode("utf-8")).digest())
         Auth = base64.b64encode(hashlib.sha256(Base64Secret + Challenge.encode("utf-8")).digest()).decode("utf-8")
 
         return Auth

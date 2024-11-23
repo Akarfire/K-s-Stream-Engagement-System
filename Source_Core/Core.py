@@ -13,14 +13,14 @@ class CoreApp:
         # Init Logger
         self.MyLogger = Logger()
 
+        # Init Config Controller
+        self.MyConfigController = ConfigController(self, "Config", "Config")
+
         # Communication Bus
         self.MyCommunicationBus = CommunicationBus(self)
 
         # Instruction Processor
         self.MyInstructionProcessor = InstructionProcessor(self, "Instructions")
-
-        # Init Config Controller
-        self.MyConfigController = ConfigController(self, "Config", "Config")
 
         # Loading Plugins
         self.MyPluginManager = PluginManager(self, "Plugins")
