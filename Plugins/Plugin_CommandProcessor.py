@@ -1,6 +1,6 @@
 from Source_Core import PluginImpl
 import queue
-from Source_Core.Types import DataMessage
+from Source_Core.Types import InstructionCodeHeader
 
 
 class Command:
@@ -8,6 +8,7 @@ class Command:
         self.Name = InName
         self.Calls = InCalls
         self.Atr = InAtr
+        self.Instructions = dict()
         self.Processor = None
 
         self.FinishOnTimer = True
@@ -18,6 +19,14 @@ class Command:
     def AssignProcessor(self, InProcessor):
         self.Processor = InProcessor
 
+    def AssignInstructions(self, InInstructions):
+        print(InInstructions)
+        self.Instructions = InInstructions
+
+        for Section in self.Instructions:
+            if self.Instructions[Section]["Header"].Type == "EVENT":
+                self.Processor.RegisterEventSubscription(self.Instructions[Section]["Header"].Name)
+
     def Update(self, DeltaTime):
         if self.FinishOnTimer:
             self.Timer -= DeltaTime
@@ -25,14 +34,18 @@ class Command:
                 self.FinishExecution()
 
     def ExecuteCommand(self, InChatMessage):
-        pass
+        if "BLOCK_Start" in self.Instructions:
+            self.Processor.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions" : self.Instructions["BLOCK_Start"]["Instructions"]})
+
+        if "BLOCK_Default" in self.Instructions:
+            self.Processor.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions" : self.Instructions["BLOCK_Default"]["Instructions"]})
 
     def FinishExecution(self):
-        self.Processor.OnCurrentCommandFinished()
-
-    def OnProcessorReceivedEventNotification(self, InDataMessage):
         pass
 
+    def OnProcessorReceivedEventNotification(self, InDataMessage):
+        if "EVENT_" + InDataMessage.Data["Head"] in self.Instructions:
+            self.Processor.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions" : self.Instructions["EVENT_" + InDataMessage.Data["Head"]]["Instructions"]})
 
 
 class QueuedCommand:
@@ -49,14 +62,16 @@ class CommandProcessor(PluginImpl.PluginBase):
 
         self.Address = "CommandProcessor"
         self.ConfigSection = "Commands"
-        self.Subscriptions = ["TTS_FinishedPlayingSFX", "TTS_FinishedPlayingTTS"]
-        self.Instructions = ["COMMAND_ProcessMessageCommands"]
+        self.Subscriptions = []
+        self.Instructions = ["COMMAND_ProcessMessageCommands", "COMMAND_Finish"]
 
         self.LLogger = None
 
         self.Commands = dict()
         self.CommandCalls = {}
         self.CallLengths = set()
+
+        self.InstructionParsingWaiters = queue.Queue()
 
         # Queue
         self.CommandQueue = queue.Queue()
@@ -91,7 +106,6 @@ class CommandProcessor(PluginImpl.PluginBase):
 
                 self.HasActiveCommand = True
 
-
         else:
             self.ActiveCommand.Update(DeltaSeconds)
 
@@ -109,6 +123,16 @@ class CommandProcessor(PluginImpl.PluginBase):
             if InDataMessage.Data["Head"] == "COMMAND_ProcessMessageCommands":
                 self.ScanAndExecuteMessageCommands(InDataMessage.Data["Data"]["Message"],
                                                    InDataMessage.Data["Data"]["WasFiltered"])
+
+            elif InDataMessage.Data["Head"] == "COMMAND_Finish":
+                self.ActiveCommand.FinishExecution()
+                self.OnCurrentCommandFinished()
+
+        elif InDataMessage.DataType == "CB":
+
+            if InDataMessage.Data["Head"] == "INSTRUCTIONS_ParseInstructionCode":
+                Command = self.InstructionParsingWaiters.get()
+                Command.AssignInstructions(InDataMessage.Data["Data"]["Instructions"])
 
 
     def OnCurrentCommandFinished(self):
@@ -192,6 +216,9 @@ class CommandProcessor(PluginImpl.PluginBase):
         Atr = {}
         Error = False
 
+        CollectingInstructions = False
+        CollectedInstructionLines = []
+
         for line in CommandLines:
             if line.count(':') == 1:
                 Param, Values = line.replace(' ', '').split(':')
@@ -206,11 +233,11 @@ class CommandProcessor(PluginImpl.PluginBase):
                     Name = Values
                     Calls.add(Name)
 
-                if Param == "calls":
+                elif Param == "calls":
                     for call in Values.split(','):
                         Calls.add(call.upper())
 
-                if Param == "atr":
+                elif Param == "atr":
                     for atr in Values.split(','):
                         if '=' in atr:
 
@@ -232,13 +259,30 @@ class CommandProcessor(PluginImpl.PluginBase):
                         else:
                             Atr[atr] = True
 
+                elif Param == "instr":
+                    CollectingInstructions = True
+                    CollectedInstructionLines.append(Values)
+
+            elif CollectingInstructions:
+
+                if line.endswith('/'):
+                    CollectedInstructionLines.append(line.replace('/', ''))
+                    CollectingInstructions = False
+
+                else:
+                    CollectedInstructionLines.append(line)
+
         if not Error:
-            self.Commands[Name] = AssignCommand(Name, Calls, Atr)
+            self.Commands[Name] = Command(Name, Calls, Atr)
             self.Commands[Name].AssignProcessor(self)
 
             for call in Calls:
                 self.CommandCalls[call] = self.Commands[Name].Name
                 self.CallLengths.add(len(call))
+
+            if len(CollectedInstructionLines) > 0:
+                self.InstructionParsingWaiters.put(self.Commands[Name])
+                self.TransmitMessage("Instructions", "RE", {"Head" : "INSTRUCTIONS_ParseInstructionCode", "Data" : {"Code" : CollectedInstructionLines}})
 
 
 def AssignCommand(InName, InCalls, InAtr):

@@ -15,6 +15,12 @@ class ObsAuthData:
     password : str
 
 
+@dataclass
+class InstructionCodeHeader:
+    Name : str
+    Type : str
+
+
 class DataMessage:
     def __init__(self, InReceiverAddress, InSenderAddress, InDataType, InData):
         self.ReceiverAddress = InReceiverAddress

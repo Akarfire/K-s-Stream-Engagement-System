@@ -1,7 +1,7 @@
 from dis import Instruction
 
 from Source_Core.CommunicationBus import CoreComponent_BusConnected
-from Source_Core.Types import DataMessage
+from Source_Core.Types import DataMessage, InstructionCodeHeader
 
 class InstructionMacro:
     def __init__(self, InMacroName = "", InCode = ""):
@@ -39,50 +39,83 @@ class InstructionProcessor(CoreComponent_BusConnected):
     def ReceivedData(self, InDataMessage):
 
         if InDataMessage.DataType == "IN":
-            if InDataMessage.Data["Head"] in self.Instructions:
 
-                # Instr = InDataMessage.Data["Head"]
-                # self.MyCore.MyLogger.LogStatus(f"INSTRUCTION PROCESSOR: Received Instruction: '{Instr}'")
+            if InDataMessage.Data["Head"] == "INSTRUCTIONS_InterpretInstructions":
+                self.InterpretInstructions(InDataMessage.Data["Data"]["Instructions"], InDataMessage.SenderAddress)
 
-                Executor = self.Instructions[InDataMessage.Data["Head"]]
+            elif InDataMessage.Data["Head"] in self.Instructions:
+                self.RunInstruction(InDataMessage.Data["Head"], InDataMessage.Data["Data"], InDataMessage.SenderAddress)
 
-                if Executor == "CORE":
-                    self.ExecuteCoreInstruction(InDataMessage.Data["Head"], InDataMessage.Data["Data"])
-
-                else:
-                    InstructionCallMessage = DataMessage(Executor, InDataMessage.SenderAddress, "IN", InDataMessage.Data)
-                    self.TransmitData(InstructionCallMessage)
+                # Executor = self.Instructions[InDataMessage.Data["Head"]]
+                #
+                # if Executor == "CORE":
+                #     self.ExecuteCoreInstruction(InDataMessage.Data["Head"], InDataMessage.Data["Data"])
+                #
+                # else:
+                #     InstructionCallMessage = DataMessage(Executor, InDataMessage.SenderAddress, "IN", InDataMessage.Data)
+                #     self.TransmitData(InstructionCallMessage)
 
 
         elif InDataMessage.DataType == "CB" and InDataMessage.Data["Head"] == "PluginConfigRequest":
             self.ParseMacroCode(InDataMessage.Data["Data"]["ConfigLines"])
 
+        elif InDataMessage.DataType == "RE" and InDataMessage.Data["Head"] == "INSTRUCTIONS_ParseInstructionCode":
+            ParsedCode = self.ParseInstructionCode(InDataMessage.Data["Data"]["Code"])
+
+            CallBackMessage = DataMessage(InDataMessage.SenderAddress, self.Address, "CB", {"Head" : "INSTRUCTIONS_ParseInstructionCode", "Data" : {"Instructions" : ParsedCode}})
+            self.TransmitData(CallBackMessage)
+
+
+    def RunInstruction(self, InInstruction, InArguments, CallerAddress):
+
+        if not InInstruction in self.Instructions:
+            self.LLogger.LogError(f"INSTRUCTIONS: Invalid instruction '{InInstruction}'!")
+            return
+
+        Executor = self.Instructions[InInstruction]
+        if Executor == "CORE":
+            self.ExecuteCoreInstruction(InInstruction, InArguments)
+
+        else:
+            InstructionCallMessage = DataMessage(Executor, CallerAddress, "IN", {"Head" : InInstruction, "Data" : InArguments})
+            self.TransmitData(InstructionCallMessage)
+
+
+    def InterpretInstructions(self, InInstructions, CallerAddress):
+        for Instr in InInstructions:
+            self.RunInstruction(Instr["Instruction"], Instr["Arguments"], CallerAddress)
+
 
     def ParseMacroCode(self, InCode):
 
         InCode.append('-')
-
         CurrentMacroData = InstructionMacro()
 
         InstructionSection = False
         InstructionCode = ""
         for Line in InCode:
-            Line = Line.replace(' ', '').replace('  ', '').replace('\n', '')
+            Line = Line.replace(' ', '').replace('\t', '').replace('\n', '')
+            print(Line)
 
             if InstructionSection:
                 if Line.endswith('/'):
                     InstructionCode += Line.replace('/', '')
                     CurrentMacroData.Code = InstructionCode
+                    InstructionCode = ""
+                    InstructionSection = False
                     continue
 
                 InstructionCode += Line
 
-            elif Line == '-':
+            if Line == '-':
+                print("MACRO END", CurrentMacroData.MacroName)
                 if CurrentMacroData.MacroName != "":
                     self.Macros[CurrentMacroData.MacroName] = CurrentMacroData
+                    CurrentMacroData = InstructionMacro()
 
             elif Line.startswith("name:"):
                 CurrentMacroData.MacroName = Line.replace("name:", '')
+                print("MACRO START", CurrentMacroData.MacroName)
 
             elif Line.startswith("args:"):
                 for Arg in Line.replace("args:", '').split(','):
@@ -94,14 +127,14 @@ class InstructionProcessor(CoreComponent_BusConnected):
 
 
     def ParseInstructionCode(self, InCode):
-
+        print("\n\n\n\n" + str(InCode))
         # InCode is a list of Code Lines, we will turn it into a monolith line
         Code = ""
         for L in InCode:
             Code += L
 
-        Code = Code.replace('\n', '').replace(' ', '').replace('    ', '')
-
+        Code = Code.replace('\n', '').replace(' ', '').replace('\t', '')
+        print("\n\b" + Code)
         # MACRO IMPLEMENTATION
         while '$' in Code:
             MacroStart = Code.index('$')
@@ -125,10 +158,11 @@ class InstructionProcessor(CoreComponent_BusConnected):
 
             Code = Code.replace('$' + MacroCode + '$', self.UnwrapMacro(Macro))
 
+        print("\n\b" + Code)
         # PARSING
         OutParsedCode = dict()
 
-        CurrentHeader = {"Name" : "Default", "Type" : "BLOCK"}
+        CurrentHeader = InstructionCodeHeader("Default", "BLOCK") #{"Name" : "Default", "Type" : "BLOCK"}
         CurrentInstructions = []
 
         CurrentLexeme = ""
@@ -138,11 +172,12 @@ class InstructionProcessor(CoreComponent_BusConnected):
                 if i == '{':
                     IsHeaderValid, CurrentHeader = self.ParseHeader(CurrentLexeme)
 
+
                     if not IsHeaderValid:
                         self.LLogger.LogError(f"INSTRUCTION PARSING: Invalid header in '{CurrentLexeme}'!")
                         return dict()
 
-                    if CurrentHeader in OutParsedCode:
+                    if (CurrentHeader.Type + "_" + CurrentHeader.Name) in OutParsedCode:
                         self.LLogger.LogError(f"INSTRUCTION PARSING: Header '{CurrentHeader}' already exists!")
                         return dict()
 
@@ -155,7 +190,8 @@ class InstructionProcessor(CoreComponent_BusConnected):
                         self.LLogger.LogError(f"INSTRUCTION PARSING: ';' expected after every instruction!")
                         return dict()
 
-                    OutParsedCode[CurrentHeader] = CurrentInstructions
+                    OutParsedCode[CurrentHeader.Type + "_" + CurrentHeader.Name] = { "Header" : CurrentHeader, "Instructions" : CurrentInstructions.copy()}
+                    CurrentInstructions.clear()
                     Code = Code.replace(i, '', 1)
                     break
 
@@ -187,10 +223,13 @@ class InstructionProcessor(CoreComponent_BusConnected):
         HeaderType = "BLOCK"
 
         if len(InLex) == 0:
-            return True, {"Name" : HeaderName, "Type" : HeaderType}
+            return True, InstructionCodeHeader(HeaderName, HeaderType)
 
         if ':' in InLex:
             HeaderType, HeaderName = InLex.split(':', 1)
+
+        else:
+            HeaderName = InLex
 
         # Validation
         Valid = True
@@ -204,13 +243,15 @@ class InstructionProcessor(CoreComponent_BusConnected):
             Valid = False
 
         if not Valid:
-            return False, {"Name" : HeaderName, "Type" : HeaderType}
+            return False, InstructionCodeHeader(HeaderName, HeaderType)
+
+        return True, InstructionCodeHeader(HeaderName, HeaderType)
 
 
     def ParseInstruction(self, InLex):
 
         if len(InLex) == 0:
-            self.LLogger.LogError("INSTRUCTION PARSING: Emtpy instruction!")
+            self.LLogger.LogError("INSTRUCTION PARSING: Empty instruction!")
             return False, dict()
 
         if not '(' in InLex or (InLex.count('(') != InLex.count(')')):
@@ -218,10 +259,12 @@ class InstructionProcessor(CoreComponent_BusConnected):
             return False, dict()
 
         InstructionName, ArgumentsStr = InLex.split('(', 1)
-        ArgumentsStr = ArgumentsStr.replace(')', ',')
+        ArgumentsStr = ArgumentsStr.replace(')', '')
+
+        if len(ArgumentsStr) > 0:
+            ArgumentsStr += ','
 
         Arguments = dict()
-
         CurrentArgument = ""
         while len(ArgumentsStr) > 0:
             for i in ArgumentsStr:
@@ -249,7 +292,7 @@ class InstructionProcessor(CoreComponent_BusConnected):
     def ParseArgument(self, InLex):
 
         if len(InLex) == 0:
-            self.LLogger.LogError("INSTRUCTION PARSING: Emtpy argument!")
+            self.LLogger.LogError("INSTRUCTION PARSING: Empty argument!")
             return False, "", None
 
         if InLex.count('=') != 1:
@@ -294,7 +337,7 @@ class InstructionProcessor(CoreComponent_BusConnected):
                 self.LLogger.LogError(f"INSTRUCTION PARSING: Required argument '{Arg}' not found in macro code '{InMacro}'")
                 return ""
 
-            UnwrappedCode = UnwrappedCode.replace('$' + Arg + '$', InMacro["Arguments"][Arg])
+            UnwrappedCode = UnwrappedCode.replace('$' + Arg + '$', '[' + type(InMacro["Arguments"][Arg]).__name__[0] + ']' + str(InMacro["Arguments"][Arg]))
 
 
         return UnwrappedCode

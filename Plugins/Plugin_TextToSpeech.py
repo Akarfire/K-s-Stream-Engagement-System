@@ -117,7 +117,6 @@ class TextToSpeech(PluginImpl.PluginBase):
 
 
     def PlaySound(self, file, Volume=1.0):
-
         try:
             Sound = pygame.mixer.Sound(file)
             Sound.set_volume(Volume)

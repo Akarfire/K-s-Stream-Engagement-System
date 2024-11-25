@@ -58,6 +58,10 @@ class PluginBase:
             self.TransmitMessage(InDataMessage.SenderAddress, "CB", {"Head" : "PluginInitConfigRequest", "Data" : {"ConfigSectionName" : self.ConfigSection, "ConfigLines" : self.InitPluginConfig()}})
         # Override
 
+    def RegisterEventSubscription(self, InEvent):
+        self.Subscriptions.append(InEvent)
+        self.MyPluginManager.RegisterPluginEventSubsctiption(self.Address, InEvent)
+
     def RequestConfigData(self):
         self.TransmitMessage("Config", "RE", {"Head" : "PluginConfigRequest", "Data" : {"ConfigSection" : self.ConfigSection}})
 
@@ -122,6 +126,7 @@ class PluginBase:
         return None
 
 
+
 class PluginManager(CoreComponent_BusConnected):
 
     def __init__(self, InCore, InAddress):
@@ -173,12 +178,16 @@ class PluginManager(CoreComponent_BusConnected):
             self.Plugins.append(Inst)
 
             for Sub in Inst.Subscriptions:
-                self.PluginAddressManager.RegisterSubscription(Sub, Inst.Address)
-                self.MyCommunicationBus.RegisterSubscription(Sub, Inst.Address)
+                self.RegisterPluginEventSubsctiption(Inst.Address, Sub)
 
             for Instruction in Inst.Instructions:
                 self.MyCore.MyInstructionProcessor.RegisterInstruction(Instruction, Inst.Address)
 
+
+    def RegisterPluginEventSubsctiption(self, InPluginAddress, InEvent):
+
+        self.PluginAddressManager.RegisterSubscription(InEvent, InPluginAddress)
+        self.MyCommunicationBus.RegisterSubscription(InEvent, InPluginAddress)
 
 
     def UpdatePlugins(self, InDeltaTime):
