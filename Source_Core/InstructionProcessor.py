@@ -9,6 +9,10 @@ class InstructionMacro:
         self.Arguments = set()
         self.Code = InCode
 
+class RuntimeParameter:
+    def __init__(self, InParameterName):
+        self.Name = InParameterName
+
 class InstructionProcessor(CoreComponent_BusConnected):
 
     def __init__(self, InCore, InAddress):
@@ -41,7 +45,7 @@ class InstructionProcessor(CoreComponent_BusConnected):
         if InDataMessage.DataType == "IN":
 
             if InDataMessage.Data["Head"] == "INSTRUCTIONS_InterpretInstructions":
-                self.InterpretInstructions(InDataMessage.Data["Data"]["Instructions"], InDataMessage.SenderAddress)
+                self.InterpretInstructions(InDataMessage.Data["Data"]["Instructions"], InDataMessage.SenderAddress, InDataMessage.Data["Data"]["RuntimeParameters"])
 
             elif InDataMessage.Data["Head"] in self.Instructions:
                 self.RunInstruction(InDataMessage.Data["Head"], InDataMessage.Data["Data"], InDataMessage.SenderAddress)
@@ -81,9 +85,27 @@ class InstructionProcessor(CoreComponent_BusConnected):
             self.TransmitData(InstructionCallMessage)
 
 
-    def InterpretInstructions(self, InInstructions, CallerAddress):
+    def InterpretInstructions(self, InInstructions, InCallerAddress, InRuntimeParameters):
         for Instr in InInstructions:
-            self.RunInstruction(Instr["Instruction"], Instr["Arguments"], CallerAddress)
+            self.RunInstruction(Instr["Instruction"], self.InterpretArguments(Instr["Arguments"], InRuntimeParameters), InCallerAddress)
+
+
+    def InterpretArguments(self, InArguments, InRuntimeParameters):
+
+        OutArguments = dict()
+
+        for Arg in InArguments:
+
+            if type(InArguments[Arg]) == RuntimeParameter:
+                if InArguments[Arg].Name in InRuntimeParameters:
+                    OutArguments[Arg] = InRuntimeParameters[InArguments[Arg].Name]
+                else:
+                    OutArguments[Arg] = None
+
+            else:
+                OutArguments[Arg] = InArguments[Arg]
+
+        return OutArguments
 
 
     def ParseMacroCode(self, InCode):
@@ -316,7 +338,7 @@ class InstructionProcessor(CoreComponent_BusConnected):
             ArgumentValue = ArgumentValueStr.replace('[s]', '')
 
         else:
-            ArgumentValue = ArgumentValueStr
+            ArgumentValue = RuntimeParameter(ArgumentValueStr)
 
 
         return True, ArgumentName, ArgumentValue

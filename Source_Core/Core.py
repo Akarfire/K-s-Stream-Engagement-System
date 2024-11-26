@@ -1,3 +1,5 @@
+from numpy.f2py.auxfuncs import throw_error
+
 from Source_Core.Config import ConfigController
 from Source_Core.Logger import  Logger
 from Source_Core.ControlServer import ControlServer
@@ -55,8 +57,8 @@ class CoreApp:
                 time.sleep(self.TimeBetweenFrames)
 
         except Exception as e:
-            self.MyLogger.LogError("CRASH DETECTED: " + str(e))
-            pass
+             self.MyLogger.LogError("CRASH DETECTED: " + str(e))
+             pass
 
         # Quiting
         self.MyLogger.LogStatus("QUITING")

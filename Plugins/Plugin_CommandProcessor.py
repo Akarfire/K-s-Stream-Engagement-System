@@ -11,6 +11,8 @@ class Command:
         self.Instructions = dict()
         self.Processor = None
 
+        self.LastChatMessage = None
+
         self.FinishOnTimer = True
         self.Timer = 0
         if "time" in self.Atr:
@@ -34,18 +36,29 @@ class Command:
                 self.FinishExecution()
 
     def ExecuteCommand(self, InChatMessage):
+
+        self.LastChatMessage = InChatMessage
+
         if "BLOCK_Start" in self.Instructions:
-            self.Processor.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions" : self.Instructions["BLOCK_Start"]["Instructions"]})
+            self.Processor.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions" : self.Instructions["BLOCK_Start"]["Instructions"], \
+                "RuntimeParameters" : {"MESSAGE_Text" : InChatMessage.Message, "MESSAGE_Author" : InChatMessage.Author}})
 
         if "BLOCK_Default" in self.Instructions:
-            self.Processor.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions" : self.Instructions["BLOCK_Default"]["Instructions"]})
+            self.Processor.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions" : self.Instructions["BLOCK_Default"]["Instructions"], "RuntimeParameters" : \
+                {"MESSAGE_Text" : InChatMessage.Message, "MESSAGE_Author" : InChatMessage.Author}})
 
     def FinishExecution(self):
         pass
 
     def OnProcessorReceivedEventNotification(self, InDataMessage):
         if "EVENT_" + InDataMessage.Data["Head"] in self.Instructions:
-            self.Processor.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions" : self.Instructions["EVENT_" + InDataMessage.Data["Head"]]["Instructions"]})
+
+            RuntimeParameters = {"MESSAGE_Text" : self.LastChatMessage.Message, "MESSAGE_Author" : self.LastChatMessage.Author}
+
+            for Dat in InDataMessage.Data["Data"]:
+                RuntimeParameters["EVENT_" + Dat] = InDataMessage.Data["Data"][Dat]
+
+            self.Processor.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions" : self.Instructions["EVENT_" + InDataMessage.Data["Head"]]["Instructions"], "RuntimeParameters" : RuntimeParameters})
 
 
 class QueuedCommand:
@@ -220,6 +233,16 @@ class CommandProcessor(PluginImpl.PluginBase):
         CollectedInstructionLines = []
 
         for line in CommandLines:
+
+            if CollectingInstructions:
+
+                if line.endswith('/'):
+                    CollectedInstructionLines.append(line.replace('/', ''))
+                    CollectingInstructions = False
+
+                else:
+                    CollectedInstructionLines.append(line)
+
             if line.count(':') == 1:
                 Param, Values = line.replace(' ', '').split(':')
 
@@ -263,14 +286,7 @@ class CommandProcessor(PluginImpl.PluginBase):
                     CollectingInstructions = True
                     CollectedInstructionLines.append(Values)
 
-            elif CollectingInstructions:
 
-                if line.endswith('/'):
-                    CollectedInstructionLines.append(line.replace('/', ''))
-                    CollectingInstructions = False
-
-                else:
-                    CollectedInstructionLines.append(line)
 
         if not Error:
             self.Commands[Name] = Command(Name, Calls, Atr)

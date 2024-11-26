@@ -1,5 +1,7 @@
 from threading import Event
 
+from cx_Freeze import Executable
+
 from Source_Core import PluginImpl
 from gtts import gTTS
 import pygame
@@ -66,15 +68,19 @@ class TextToSpeech(PluginImpl.PluginBase):
         for Timer in TimersToFinish:
             self.FinishEventTimers.pop(Timer)
 
-        # Update pygame
-        for event in pygame.event.get():
-            # Quit Condition
-            if event.type == pygame.QUIT:
-                pygame.quit()
+        try:
+            # Update pygame
+            for event in pygame.event.get():
+                # Quit Condition
+                if event.type == pygame.QUIT:
+                    pygame.quit()
 
-        # Frame Updates
-        pygame.display.update()
-        self.clock.tick(60)
+            # Frame Updates
+            pygame.display.update()
+            self.clock.tick(60)
+
+        except Exception as e:
+            self.LLogger.LogError(f"TTS: Pygame update error : '{e}'!")
 
 
     def ReceiveMessage(self, InDataMessage):
@@ -83,7 +89,7 @@ class TextToSpeech(PluginImpl.PluginBase):
 
         if InDataMessage.DataType == "IN":
             if InDataMessage.Data["Head"] == "TTS_ConvertTTS":
-                self.ConvertTTS(InDataMessage.Data["Data"])
+                self.ConvertTTS(InDataMessage.Data["Data"]["Text"])
 
             elif InDataMessage.Data["Head"] == "TTS_PlayTTS":
                 Time = self.PlayTTS()
