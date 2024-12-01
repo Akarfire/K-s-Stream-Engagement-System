@@ -21,7 +21,7 @@ class TwitchAuthData:
 class TwitchChatReader(PluginImpl.PluginBase):
 
     def __init__(self, InPluginManager):
-        super().__init__(InPluginManager)
+        super().__init__(InPluginManager, "Init PLUGIN: Twitch Chat Reader")
         self.Address = "TwitchChatReader"
         self.ConfigSection = "TwitchChat"
         self.Subscriptions = []
@@ -37,12 +37,7 @@ class TwitchChatReader(PluginImpl.PluginBase):
     def InitPlugin(self):
         super().InitPlugin()
 
-        self.MyCore = self.MyPluginManager.MyCore
-
         self.USE_TWITCH = self.GetOption("Use_Twitch") and self.TWITCH_DataFound
-
-        # Logger
-        self.LLogger = self.MyCore.MyLogger
 
         # Initial Info Print
         self.LLogger.LogStatus(

@@ -13,10 +13,11 @@ class PluginBase:
 
     PluginList = []
 
-    def __init__(self, InPluginManager):
+    def __init__(self, InPluginManager, InLogSegmentName):
 
         self.MyPluginManager = InPluginManager
         self.LLogger = self.MyPluginManager.LLogger
+        self.LLogger.NewLogSegment(InLogSegmentName)
         self.MyCore = InPluginManager.MyCore
         self.Address = "Plugin" + str(random.randint(10000, 99999))
         self.ConfigSection = ""
@@ -130,12 +131,11 @@ class PluginBase:
 class PluginManager(CoreComponent_BusConnected):
 
     def __init__(self, InCore, InAddress):
-        super().__init__(InCore, InAddress)
+        super().__init__(InCore, InAddress, "Init Plugin Manager")
 
         self.Plugins = []
 
         self.PluginAddressManager = AddressManager(self.MyCore.MyLogger)
-        self.LLogger = self.MyCore.MyLogger
 
 
     def LoadPluginModule(self, Path):

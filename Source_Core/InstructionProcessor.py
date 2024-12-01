@@ -16,9 +16,8 @@ class RuntimeParameter:
 class InstructionProcessor(CoreComponent_BusConnected):
 
     def __init__(self, InCore, InAddress):
-        super().__init__(InCore, InAddress)
+        super().__init__(InCore, InAddress, "Init Instruction Processor")
 
-        self.LLogger = InCore.MyLogger
         self.Instructions = dict()
         self.Macros = dict()
 
@@ -72,17 +71,21 @@ class InstructionProcessor(CoreComponent_BusConnected):
 
     def RunInstruction(self, InInstruction, InArguments, CallerAddress):
 
-        if not InInstruction in self.Instructions:
-            self.LLogger.LogError(f"INSTRUCTIONS: Invalid instruction '{InInstruction}'!")
-            return
+        try:
+            if not InInstruction in self.Instructions:
+                self.LLogger.LogError(f"INSTRUCTIONS: Invalid instruction '{InInstruction}'!")
+                return
 
-        Executor = self.Instructions[InInstruction]
-        if Executor == "CORE":
-            self.ExecuteCoreInstruction(InInstruction, InArguments)
+            Executor = self.Instructions[InInstruction]
+            if Executor == "CORE":
+                self.ExecuteCoreInstruction(InInstruction, InArguments)
 
-        else:
-            InstructionCallMessage = DataMessage(Executor, CallerAddress, "IN", {"Head" : InInstruction, "Data" : InArguments})
-            self.TransmitData(InstructionCallMessage)
+            else:
+                InstructionCallMessage = DataMessage(Executor, CallerAddress, "IN", {"Head" : InInstruction, "Data" : InArguments})
+                self.TransmitData(InstructionCallMessage)
+
+        except Exception as e:
+            self.LLogger.LogError(f"INSTRUCTION EXECUTION: {InInstruction} failed to execute: {e}")
 
 
     def InterpretInstructions(self, InInstructions, InCallerAddress, InRuntimeParameters):
@@ -117,7 +120,6 @@ class InstructionProcessor(CoreComponent_BusConnected):
         InstructionCode = ""
         for Line in InCode:
             Line = Line.replace(' ', '').replace('\t', '').replace('\n', '')
-            print(Line)
 
             if InstructionSection:
                 if Line.endswith('/'):
@@ -130,14 +132,12 @@ class InstructionProcessor(CoreComponent_BusConnected):
                 InstructionCode += Line
 
             if Line == '-':
-                print("MACRO END", CurrentMacroData.MacroName)
                 if CurrentMacroData.MacroName != "":
                     self.Macros[CurrentMacroData.MacroName] = CurrentMacroData
                     CurrentMacroData = InstructionMacro()
 
             elif Line.startswith("name:"):
                 CurrentMacroData.MacroName = Line.replace("name:", '')
-                print("MACRO START", CurrentMacroData.MacroName)
 
             elif Line.startswith("args:"):
                 for Arg in Line.replace("args:", '').split(','):
@@ -149,14 +149,12 @@ class InstructionProcessor(CoreComponent_BusConnected):
 
 
     def ParseInstructionCode(self, InCode):
-        print("\n\n\n\n" + str(InCode))
         # InCode is a list of Code Lines, we will turn it into a monolith line
         Code = ""
         for L in InCode:
             Code += L
 
         Code = Code.replace('\n', '').replace(' ', '').replace('\t', '')
-        print("\n\b" + Code)
         # MACRO IMPLEMENTATION
         while '$' in Code:
             MacroStart = Code.index('$')
@@ -180,7 +178,6 @@ class InstructionProcessor(CoreComponent_BusConnected):
 
             Code = Code.replace('$' + MacroCode + '$', self.UnwrapMacro(Macro))
 
-        print("\n\b" + Code)
         # PARSING
         OutParsedCode = dict()
 

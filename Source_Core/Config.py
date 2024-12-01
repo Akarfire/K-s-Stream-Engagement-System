@@ -9,13 +9,9 @@ from pathlib import Path
 class ConfigController(CoreComponent_BusConnected):
 
     def __init__(self, InCore, InAddress, ConfigFolder):
-        super().__init__(InCore, InAddress)
+        super().__init__(InCore, InAddress, "Loading Config Data")
 
         self.Path = ConfigFolder
-
-        self.LLogger = self.MyCore.MyLogger
-        self.LLogger.NewLogSegment("Loading Config Data")
-
 
         # Options Map
         self.DefaultOptions = \

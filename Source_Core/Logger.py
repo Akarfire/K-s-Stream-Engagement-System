@@ -11,10 +11,14 @@ class Logger:
         self.FileName = "Log_" + datetime.datetime.now().strftime("%I_%M%p - %B_%d_%Y") + ".txt"
 
 
-    def LogString(self, InString, Print = True):
+    def LogString(self, InString, Print = True, Date = True):
 
-        Time = datetime.datetime.now().strftime("%I:%M%p - %B_%d_%Y")
-        LogLine = Time + "  :  " + InString
+        if Date:
+            Time = datetime.datetime.now().strftime("%I:%M%p - %B_%d_%Y")
+            LogLine = Time + "  :  " + InString
+
+        else:
+            LogLine = InString
 
         try:
             with open(self.Dir + self.FileName, 'a', encoding="utf-8") as File:
@@ -52,4 +56,4 @@ class Logger:
     def NewLogSegment(self, InSegmentName):
 
         LogLine = "\n---" + InSegmentName + "---" + "\n"
-        self.LogString(LogLine)
+        self.LogString(LogLine, True, False)

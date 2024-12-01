@@ -14,8 +14,7 @@ class ObsAuthData:
 class ObsWebsocket(PluginImpl.PluginBase):
 
     def __init__(self, InPluginManager):
-        super().__init__(InPluginManager)
-        self.LLogger = self.MyPluginManager.LLogger
+        super().__init__(InPluginManager, "Init PLUGIN: OBS Websocket")
         self.Address = "ObsWebsocket"
         self.ConfigSection = "OBS"
         self.Subscriptions = []

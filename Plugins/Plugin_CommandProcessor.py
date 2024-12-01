@@ -22,7 +22,6 @@ class Command:
         self.Processor = InProcessor
 
     def AssignInstructions(self, InInstructions):
-        print(InInstructions)
         self.Instructions = InInstructions
 
         for Section in self.Instructions:
@@ -71,14 +70,12 @@ class QueuedCommand:
 class CommandProcessor(PluginImpl.PluginBase):
 
     def __init__(self, InPluginManager):
-        super().__init__(InPluginManager)
+        super().__init__(InPluginManager, "Init PLUGIN: Command Processor")
 
         self.Address = "CommandProcessor"
         self.ConfigSection = "Commands"
         self.Subscriptions = []
         self.Instructions = ["COMMAND_ProcessMessageCommands", "COMMAND_Finish"]
-
-        self.LLogger = None
 
         self.Commands = dict()
         self.CommandCalls = {}
@@ -94,9 +91,6 @@ class CommandProcessor(PluginImpl.PluginBase):
 
     def InitPlugin(self):
         super().InitPlugin()
-
-        self.LLogger = self.MyCore.MyLogger
-        self.LLogger.NewLogSegment("Init Command Processor")
 
         # Data initializing
         self.TransmitMessage("Config", "RE", {"Head" : "Request_CommandList" , "Data" : None})

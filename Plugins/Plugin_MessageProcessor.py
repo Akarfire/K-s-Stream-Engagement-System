@@ -5,7 +5,7 @@ from Source_Core.Types import ChatMessage
 class MessageProcessor(PluginImpl.PluginBase):
 
     def __init__(self, InPluginManager):
-        super().__init__(InPluginManager)
+        super().__init__(InPluginManager, "Init PLUGIN: Message Processor")
         self.Address = "MessageProcessor"
         self.ConfigSection = "MessageProcessor"
         self.Subscriptions = ["OnChatMessageArrived"]
@@ -16,12 +16,6 @@ class MessageProcessor(PluginImpl.PluginBase):
 
     def InitPlugin(self):
         super().InitPlugin()
-
-        # Initial Info Print
-        self.MyPluginManager.LLogger.LogStatus(
-            f"YouTube Chat Reader Plugin Initiated!"
-        )
-
 
     def DeletePlugin(self):
         pass

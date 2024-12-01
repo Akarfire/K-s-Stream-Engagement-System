@@ -6,10 +6,9 @@ from Source_Core.Types import DataMessage
 class CommunicationBus(CoreComponent):
 
     def __init__(self, InCore):
-        super().__init__(InCore)
+        super().__init__(InCore, "Init Communication Bus")
 
         self.MyAddressManager = AddressManager(self.MyCore.MyLogger)
-        self.LLogger = self.MyCore.MyLogger
 
 
     def ReceivedData(self, InDataMessage):
@@ -51,8 +50,8 @@ class CommunicationBus(CoreComponent):
 
 class CoreComponent_BusConnected(CoreComponent):
 
-    def __init__(self, InCore, InAddress):
-        super().__init__(InCore)
+    def __init__(self, InCore, InAddress, InLogSegmentName):
+        super().__init__(InCore, InLogSegmentName)
 
         self.Address = InAddress
 

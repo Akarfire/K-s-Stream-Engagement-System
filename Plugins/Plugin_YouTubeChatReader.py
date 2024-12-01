@@ -13,7 +13,7 @@ from Source_Core import PluginImpl
 class YTChatReader(PluginImpl.PluginBase):
 
     def __init__(self, InPluginManager):
-        super().__init__(InPluginManager)
+        super().__init__(InPluginManager, "Init PLUGIN: YouTube Chat Reader")
         self.Address = "YTChatReader"
         self.ConfigSection = "YTChat"
         self.Subscriptions = []
@@ -29,12 +29,7 @@ class YTChatReader(PluginImpl.PluginBase):
     def InitPlugin(self):
         super().InitPlugin()
 
-        self.MyCore = self.MyPluginManager.MyCore
-
         self.USE_YT = self.GetOption("Use_YT") and self.YT_DataFound
-
-        # Logger
-        self.LLogger = self.MyCore.MyLogger
 
         # Initial Info Print
         self.LLogger.LogStatus(

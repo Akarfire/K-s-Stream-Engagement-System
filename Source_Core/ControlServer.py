@@ -7,9 +7,7 @@ from Source_Core.CommunicationBus import CoreComponent_BusConnected
 class ControlServer(CoreComponent_BusConnected):
 
     def __init__(self, InCore, InAdress):
-        super().__init__(InCore, InAdress)
-
-        self.LLogger = self.MyCore.MyLogger
+        super().__init__(InCore, InAdress, "Init Control Server")
 
         self.Host = "127.0.0.1"
         self.Port = 22222

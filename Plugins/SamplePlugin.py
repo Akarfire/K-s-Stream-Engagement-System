@@ -3,7 +3,7 @@ from Source_Core import PluginImpl
 class SamplePlugin(PluginImpl.PluginBase):
 
     def __init__(self, InPluginManager):
-        super().__init__(InPluginManager)
+        super().__init__(InPluginManager, "Init PLUGIN: sample plugin")
 
         #self.Address = ...
         self.ConfigSection = ""

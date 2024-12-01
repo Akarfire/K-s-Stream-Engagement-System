@@ -11,7 +11,7 @@ from pathlib import Path
 class TextToSpeech(PluginImpl.PluginBase):
 
     def __init__(self, InPluginManager):
-        super().__init__(InPluginManager)
+        super().__init__(InPluginManager, "Init PLUGIN: Text To Speech")
 
         self.Address = "TextToSpeech"
         self.ConfigSection = "TTS"
@@ -21,7 +21,6 @@ class TextToSpeech(PluginImpl.PluginBase):
         self.display = None
         self.clock = None
         self.slow = None
-        self.LLogger = None
         self.FinishEventTimers = dict()
 
         self.AddOption("Use_TTS", True)
