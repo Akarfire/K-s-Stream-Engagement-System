@@ -38,13 +38,9 @@ class Command:
 
         self.LastChatMessage = InChatMessage
 
-        if "BLOCK_Start" in self.Instructions:
-            self.Processor.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions" : self.Instructions["BLOCK_Start"]["Instructions"], \
-                "RuntimeParameters" : {"MESSAGE_Text" : InChatMessage.Message, "MESSAGE_Author" : InChatMessage.Author}})
-
         if "BLOCK_Default" in self.Instructions:
-            self.Processor.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions" : self.Instructions["BLOCK_Default"]["Instructions"], "RuntimeParameters" : \
-                {"MESSAGE_Text" : InChatMessage.Message, "MESSAGE_Author" : InChatMessage.Author}})
+            self.Processor.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions" : self.Instructions["BLOCK_Default"]["Instructions"], \
+                "RuntimeParameters" :  {"MESSAGE_Text" : InChatMessage.Message, "MESSAGE_Author" : InChatMessage.Author, "Code" : self.Instructions}})
 
     def FinishExecution(self):
         pass
@@ -52,11 +48,11 @@ class Command:
     def OnProcessorReceivedEventNotification(self, InDataMessage):
         if "EVENT_" + InDataMessage.Data["Head"] in self.Instructions:
 
-            RuntimeParameters = {"MESSAGE_Text" : self.LastChatMessage.Message, "MESSAGE_Author" : self.LastChatMessage.Author}
+            RuntimeParameters = {"MESSAGE_Text" : self.LastChatMessage.Message, "MESSAGE_Author" : self.LastChatMessage.Author, "Code" : self.Instructions}
 
             for Dat in InDataMessage.Data["Data"]:
                 RuntimeParameters["EVENT_" + Dat] = InDataMessage.Data["Data"][Dat]
-
+            
             self.Processor.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions" : self.Instructions["EVENT_" + InDataMessage.Data["Head"]]["Instructions"], "RuntimeParameters" : RuntimeParameters})
 
 

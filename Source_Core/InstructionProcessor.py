@@ -3,20 +3,27 @@ from dis import Instruction
 from Source_Core.CommunicationBus import CoreComponent_BusConnected
 from Source_Core.Types import DataMessage, InstructionCodeHeader
 
+
+
 class InstructionMacro:
     def __init__(self, InMacroName = "", InCode = ""):
         self.MacroName = InMacroName
         self.Arguments = set()
         self.Code = InCode
 
+
+
 class RuntimeParameter:
     def __init__(self, InParameterName):
         self.Name = InParameterName
+
 
 class InstructionProcessor(CoreComponent_BusConnected):
 
     def __init__(self, InCore, InAddress):
         super().__init__(InCore, InAddress, "Init Instruction Processor")
+
+        self.FlowInstructions = ["FLOW_RunSection_IF_EQ"]
 
         self.Instructions = dict()
         self.Macros = dict()
@@ -35,8 +42,29 @@ class InstructionProcessor(CoreComponent_BusConnected):
             self.MyCore.MyLogger.LogError(f"INSTRUCTION PROCESSOR: Instruction '{InInstructionName}' is already registered for {self.Instructions[InInstructionName]}!")
 
 
-    def ExecuteCoreInstruction(self, InInstruction, InArguments):
+    def ExecuteCoreInstruction(self, InInstruction, InArguments, InRuntimeParameters):
         pass
+
+    def ExecuteCodeFlowInstruction(self, InInstruction, InArguments, InCallerAddress, InRuntimeParameters):
+
+        if not "Code" in InRuntimeParameters:
+            self.LLogger.LogError(f"INSTRUCTION FLOW: {InInstruction} failed to execute: no Code in runtime parameters!")
+
+        elif InInstruction == "FLOW_RunSection_IF_EQ":
+            if "L" in InArguments and "R" in InArguments and "Section" in InArguments and "Code" in InRuntimeParameters:
+                Section = InArguments["Section"]
+                if Section in InRuntimeParameters["Code"]:
+
+                    if InArguments["L"] == InArguments["R"]:
+                        self.InterpretInstructions(InRuntimeParameters["Code"][Section]["Instructions"], InCallerAddress, InRuntimeParameters)
+
+
+                else:
+                    self.LLogger.LogError(f"INSTRUCTION FLOW: {InInstruction} failed to execute: invalid code section: {Section}!")
+
+            else:
+                self.LLogger.LogError(
+                    f"INSTRUCTION FLOW: {InInstruction} failed to execute: invalid arguments!")
 
 
     def ReceivedData(self, InDataMessage):
@@ -47,7 +75,7 @@ class InstructionProcessor(CoreComponent_BusConnected):
                 self.InterpretInstructions(InDataMessage.Data["Data"]["Instructions"], InDataMessage.SenderAddress, InDataMessage.Data["Data"]["RuntimeParameters"])
 
             elif InDataMessage.Data["Head"] in self.Instructions:
-                self.RunInstruction(InDataMessage.Data["Head"], InDataMessage.Data["Data"], InDataMessage.SenderAddress)
+                self.RunInstruction(InDataMessage.Data["Head"], InDataMessage.Data["Data"], InDataMessage.SenderAddress, {})
 
                 # Executor = self.Instructions[InDataMessage.Data["Head"]]
                 #
@@ -69,16 +97,20 @@ class InstructionProcessor(CoreComponent_BusConnected):
             self.TransmitData(CallBackMessage)
 
 
-    def RunInstruction(self, InInstruction, InArguments, CallerAddress):
+    def RunInstruction(self, InInstruction, InArguments, CallerAddress, InRuntimeParameters):
 
         try:
+            if InInstruction in self.FlowInstructions:
+                self.ExecuteCodeFlowInstruction(InInstruction, InArguments, CallerAddress, InRuntimeParameters)
+                return
+
             if not InInstruction in self.Instructions:
                 self.LLogger.LogError(f"INSTRUCTIONS: Invalid instruction '{InInstruction}'!")
                 return
 
             Executor = self.Instructions[InInstruction]
             if Executor == "CORE":
-                self.ExecuteCoreInstruction(InInstruction, InArguments)
+                self.ExecuteCoreInstruction(InInstruction, InArguments, InRuntimeParameters)
 
             else:
                 InstructionCallMessage = DataMessage(Executor, CallerAddress, "IN", {"Head" : InInstruction, "Data" : InArguments})
@@ -89,8 +121,9 @@ class InstructionProcessor(CoreComponent_BusConnected):
 
 
     def InterpretInstructions(self, InInstructions, InCallerAddress, InRuntimeParameters):
+
         for Instr in InInstructions:
-            self.RunInstruction(Instr["Instruction"], self.InterpretArguments(Instr["Arguments"], InRuntimeParameters), InCallerAddress)
+            self.RunInstruction(Instr["Instruction"], self.InterpretArguments(Instr["Arguments"], InRuntimeParameters), InCallerAddress, InRuntimeParameters)
 
 
     def InterpretArguments(self, InArguments, InRuntimeParameters):

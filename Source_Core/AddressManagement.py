@@ -34,7 +34,8 @@ class AddressManager:
     def RegisterSubscription(self, InEventName, InReceiverAddress):
 
         if InEventName in self.Subscriptions:
-            self.Subscriptions[InEventName].append(InReceiverAddress)
+            if not InReceiverAddress in self.Subscriptions[InEventName]:
+                self.Subscriptions[InEventName].append(InReceiverAddress)
 
         else:
             self.Subscriptions[InEventName] = [InReceiverAddress]

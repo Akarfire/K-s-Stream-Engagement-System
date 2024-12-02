@@ -39,8 +39,8 @@ class Logger:
 
 
     def LogObsResponse(self, InResponse):
-
-        self.LogString(str(InResponse), False)
+        pass
+        #self.LogString(str(InResponse), False)
 
 
     def LogStatus(self, InStatusMessage, Print = True):
