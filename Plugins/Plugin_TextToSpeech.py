@@ -16,7 +16,7 @@ class TextToSpeech(PluginImpl.PluginBase):
         self.Address = "TextToSpeech"
         self.ConfigSection = "TTS"
         self.Subscriptions = []
-        self.Instructions = ["TTS_ConvertTTS", "TTS_PlayTTS", "TTS_PlaySFX"]
+        self.Instructions = [ ("TTS_ConvertTTS", {}), ("TTS_PlayTTS", {}), ("TTS_PlaySFX", {}) ]
 
         self.display = None
         self.clock = None

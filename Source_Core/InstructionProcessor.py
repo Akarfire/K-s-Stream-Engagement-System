@@ -23,45 +23,70 @@ class InstructionProcessor(CoreComponent_BusConnected):
     def __init__(self, InCore, InAddress):
         super().__init__(InCore, InAddress, "Init Instruction Processor")
 
-        self.FlowInstructions = ["FLOW_RunSection_IF_EQ"]
-
         self.Instructions = dict()
         self.Macros = dict()
 
         MacroRequestMessage = DataMessage("Config", self.Address, "RE", { "Head" : "PluginConfigRequest", "Data" : {"ConfigSection" : "InstructionMacro"} })
         self.TransmitData(MacroRequestMessage)
 
+        # Registering Core instructions
+        self.RegisterInstruction("FLOW_RunSection_IF_EQ", "CORE")
+        self.RegisterInstruction("FLOW_RunSection_IF_NotEQ", "CORE")
 
-    def RegisterInstruction(self, InInstructionName, InExecutorAddress):
+
+    def RegisterInstruction(self, InInstructionName, InExecutorAddress, InMeta = None):
+
+        if InMeta == None:
+            InMeta = dict()
 
         if not InInstructionName in self.Instructions:
-            self.Instructions[InInstructionName] = InExecutorAddress
+            self.Instructions[InInstructionName] = {"Executor" : InExecutorAddress, "Meta" : InMeta.copy()}
             self.MyCore.MyLogger.LogStatus(f"INSTRUCTION PROCESSOR: Registered Instruction: '{InInstructionName}'")
 
         else:
             self.MyCore.MyLogger.LogError(f"INSTRUCTION PROCESSOR: Instruction '{InInstructionName}' is already registered for {self.Instructions[InInstructionName]}!")
 
 
-    def ExecuteCoreInstruction(self, InInstruction, InArguments, InRuntimeParameters):
-        pass
+    def ExecuteCoreInstruction(self, InInstruction, InArguments, InCallerAddress, InRuntimeParameters):
 
-    def ExecuteCodeFlowInstruction(self, InInstruction, InArguments, InCallerAddress, InRuntimeParameters):
+        # Execute section if L == R
+        if InInstruction == "FLOW_RunSection_IF_EQ":
 
-        if not "Code" in InRuntimeParameters:
-            self.LLogger.LogError(f"INSTRUCTION FLOW: {InInstruction} failed to execute: no Code in runtime parameters!")
+            if not "Code" in InRuntimeParameters:
+                self.LLogger.LogError(
+                    f"INSTRUCTION FLOW: {InInstruction} failed to execute: no Code in runtime parameters!")
 
-        elif InInstruction == "FLOW_RunSection_IF_EQ":
             if "L" in InArguments and "R" in InArguments and "Section" in InArguments and "Code" in InRuntimeParameters:
                 Section = InArguments["Section"]
                 if Section in InRuntimeParameters["Code"]:
 
                     if InArguments["L"] == InArguments["R"]:
-                        self.InterpretInstructions(InRuntimeParameters["Code"][Section]["Instructions"], InCallerAddress, InRuntimeParameters)
-
-
+                        self.InterpretInstructions(InRuntimeParameters["Code"][Section]["Instructions"],
+                                                   InCallerAddress, InRuntimeParameters)
                 else:
-                    self.LLogger.LogError(f"INSTRUCTION FLOW: {InInstruction} failed to execute: invalid code section: {Section}!")
+                    self.LLogger.LogError(
+                        f"INSTRUCTION FLOW: {InInstruction} failed to execute: invalid code section: {Section}!")
+            else:
+                self.LLogger.LogError(
+                    f"INSTRUCTION FLOW: {InInstruction} failed to execute: invalid arguments!")
 
+        # Execute section if L != R
+        if InInstruction == "FLOW_RunSection_IF_NotEQ":
+
+            if not "Code" in InRuntimeParameters:
+                self.LLogger.LogError(
+                    f"INSTRUCTION FLOW: {InInstruction} failed to execute: no Code in runtime parameters!")
+
+            if "L" in InArguments and "R" in InArguments and "Section" in InArguments and "Code" in InRuntimeParameters:
+                Section = InArguments["Section"]
+                if Section in InRuntimeParameters["Code"]:
+
+                    if InArguments["L"] != InArguments["R"]:
+                        self.InterpretInstructions(InRuntimeParameters["Code"][Section]["Instructions"],
+                                                   InCallerAddress, InRuntimeParameters)
+                else:
+                    self.LLogger.LogError(
+                        f"INSTRUCTION FLOW: {InInstruction} failed to execute: invalid code section: {Section}!")
             else:
                 self.LLogger.LogError(
                     f"INSTRUCTION FLOW: {InInstruction} failed to execute: invalid arguments!")
@@ -100,17 +125,18 @@ class InstructionProcessor(CoreComponent_BusConnected):
     def RunInstruction(self, InInstruction, InArguments, CallerAddress, InRuntimeParameters):
 
         try:
-            if InInstruction in self.FlowInstructions:
-                self.ExecuteCodeFlowInstruction(InInstruction, InArguments, CallerAddress, InRuntimeParameters)
-                return
-
             if not InInstruction in self.Instructions:
                 self.LLogger.LogError(f"INSTRUCTIONS: Invalid instruction '{InInstruction}'!")
                 return
 
-            Executor = self.Instructions[InInstruction]
+            Executor = self.Instructions[InInstruction]["Executor"]
+
+            if "RequestAllRuntimeParameters" in self.Instructions[InInstruction]["Meta"]:
+                if self.Instructions[InInstruction]["Meta"]["RequestAllRuntimeParameters"]:
+                    InArguments["RuntimeParameters"] = InRuntimeParameters
+
             if Executor == "CORE":
-                self.ExecuteCoreInstruction(InInstruction, InArguments, InRuntimeParameters)
+                self.ExecuteCoreInstruction(InInstruction, InArguments, CallerAddress, InRuntimeParameters)
 
             else:
                 InstructionCallMessage = DataMessage(Executor, CallerAddress, "IN", {"Head" : InInstruction, "Data" : InArguments})

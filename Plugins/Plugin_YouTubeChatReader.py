@@ -111,6 +111,21 @@ class YTChatReader(PluginImpl.PluginBase):
             self.LLogger.LogError("YouTube Data cannot be read, pls check the config file!")
 
 
+    def ReconnectToYTChat(self):
+
+        self.YTChat.terminate()
+        IsYTChatRunning = False
+        while not IsYTChatRunning:
+            try:
+                self.YTChat = pytchat.create(video_id=self.YT_Url)
+                IsYTChatRunning = True
+
+            except Exception as e:
+                self.LLogger.LogError("Failed to connect to YT, attempting reconnection in 1 second: " + str(e))
+                time.sleep(1)
+                pass
+
+
 # Async method for fetching chat
 def AsyncUpdateYT(InChatReader):
 
@@ -122,6 +137,7 @@ def AsyncUpdateYT(InChatReader):
                     InChatReader.MessageQueue.put(InChatReader.ParseYTMessage(c))
 
             else:
-                InChatReader.LLogger.LogError("YT chat's down!")
+                InChatReader.LLogger.LogError("YT chat's down, attempting to reconnect!")
+                InChatReader.ReconnectToYTChat()
 
         time.sleep(1 / InChatReader.GetOption("Chat_Fetch_Frequency"))

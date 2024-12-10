@@ -18,7 +18,7 @@ class ObsWebsocket(PluginImpl.PluginBase):
         self.Address = "ObsWebsocket"
         self.ConfigSection = "OBS"
         self.Subscriptions = []
-        self.Instructions = ["OBS_SetFilterEnabled", "OBS_SetItemEnabled"]
+        self.Instructions = [ ("OBS_SetFilterEnabled", {}), ("OBS_SetItemEnabled", {}) ]
         self.Enabled = False
 
         self.ObsAuth = ObsAuthData("localhost", 4455, "password")

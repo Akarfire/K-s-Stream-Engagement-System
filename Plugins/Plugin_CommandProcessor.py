@@ -71,7 +71,7 @@ class CommandProcessor(PluginImpl.PluginBase):
         self.Address = "CommandProcessor"
         self.ConfigSection = "Commands"
         self.Subscriptions = []
-        self.Instructions = ["COMMAND_ProcessMessageCommands", "COMMAND_Finish"]
+        self.Instructions = [ ("COMMAND_ProcessMessageCommands", {}), ("COMMAND_Finish", {}) ]
 
         self.Commands = dict()
         self.CommandCalls = {}

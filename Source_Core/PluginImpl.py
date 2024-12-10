@@ -181,7 +181,7 @@ class PluginManager(CoreComponent_BusConnected):
                 self.RegisterPluginEventSubsctiption(Inst.Address, Sub)
 
             for Instruction in Inst.Instructions:
-                self.MyCore.MyInstructionProcessor.RegisterInstruction(Instruction, Inst.Address)
+                self.MyCore.MyInstructionProcessor.RegisterInstruction(Instruction[0], Inst.Address, Instruction[1])
 
 
     def RegisterPluginEventSubsctiption(self, InPluginAddress, InEvent):
