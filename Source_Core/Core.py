@@ -30,7 +30,7 @@ class CoreApp:
         self.MyPluginManager.InitPlugins()
 
         # Control Server
-        self.MyControlServer = ControlServer(self, "ControlServer")
+        #self.MyControlServer = ControlServer(self, "ControlServer")
 
         # Main Loop
         self.MyLogger.NewLogSegment("RUNTIME")
@@ -51,7 +51,7 @@ class CoreApp:
 
                 # Runtime Logic
                 self.MyPluginManager.UpdatePlugins(self.DeltaTime)
-                self.MyControlServer.UpdateControlServer()
+                #self.MyControlServer.UpdateControlServer()
 
                 # Sleep
                 time.sleep(self.TimeBetweenFrames)

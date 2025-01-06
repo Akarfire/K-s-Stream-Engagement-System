@@ -21,6 +21,7 @@ class YTChatReader(PluginImpl.PluginBase):
 
         self.YT_Url = ""
         self.YT_DataFound = False
+        self.ChatsDown = False
 
         self.AddOption("Use_YT", True)
         self.AddOption("Chat_Fetch_Frequency", 8)
@@ -62,7 +63,11 @@ class YTChatReader(PluginImpl.PluginBase):
 
 
     def UpdatePlugin(self, DeltaSeconds):
-        if not self.MessageQueue.empty():
+
+        if self.ChatsDown:
+            self.ReconnectToYTChat()
+
+        elif not self.MessageQueue.empty():
             self.TransmitEvent("OnChatMessageArrived", self.MessageQueue.get())
 
     def ReceiveMessage(self, InDataMessage):
@@ -114,16 +119,15 @@ class YTChatReader(PluginImpl.PluginBase):
     def ReconnectToYTChat(self):
 
         self.YTChat.terminate()
-        IsYTChatRunning = False
-        while not IsYTChatRunning:
-            try:
-                self.YTChat = pytchat.create(video_id=self.YT_Url)
-                IsYTChatRunning = True
+        try:
+            self.YTChat = pytchat.create(video_id=self.YT_Url)
+            self.ChatsDown = False
 
-            except Exception as e:
-                self.LLogger.LogError("Failed to connect to YT, attempting reconnection in 1 second: " + str(e))
-                time.sleep(1)
-                pass
+        except Exception as e:
+            self.LLogger.LogError("Failed to connect to YT, attempting reconnection in 1 second: " + str(e))
+            self.ChatsDown = True
+            pass
+
 
 
 # Async method for fetching chat
@@ -138,6 +142,6 @@ def AsyncUpdateYT(InChatReader):
 
             else:
                 InChatReader.LLogger.LogError("YT chat's down, attempting to reconnect!")
-                InChatReader.ReconnectToYTChat()
+                InChatReader.ChatsDown = True
 
         time.sleep(1 / InChatReader.GetOption("Chat_Fetch_Frequency"))
