@@ -98,16 +98,16 @@ class CommandProcessor(PluginImpl.PluginBase):
     def UpdatePlugin(self, DeltaSeconds):
 
         if not self.HasActiveCommand:
+
             if not self.CommandQueue.empty():
                 QCommand = self.CommandQueue.get()
                 self.LLogger.LogStatus(
                     "COMMAND: Executing Queued command: " + QCommand.Command + " - Queue Len: " + str(self.CommandQueue.qsize()),
                     False)
 
+                self.HasActiveCommand = True
                 self.ActiveCommand = self.Commands[QCommand.Command]
                 self.ActiveCommand.ExecuteCommand(QCommand.Message)
-
-                self.HasActiveCommand = True
 
         else:
             self.ActiveCommand.Update(DeltaSeconds)
@@ -276,8 +276,6 @@ class CommandProcessor(PluginImpl.PluginBase):
                     CollectingInstructions = True
                     CollectedInstructionLines.append(Values)
 
-
-
         if not Error:
             self.Commands[Name] = Command(Name, Calls, Atr)
             self.Commands[Name].AssignProcessor(self)
@@ -291,83 +289,83 @@ class CommandProcessor(PluginImpl.PluginBase):
                 self.TransmitMessage("Instructions", "RE", {"Head" : "INSTRUCTIONS_ParseInstructionCode", "Data" : {"Code" : CollectedInstructionLines}})
 
 
-def AssignCommand(InName, InCalls, InAtr):
-
-    if "sfx" in InAtr:
-        return Command_PlaySound(InName, InCalls, InAtr)
-
-    elif InName == "VOICE":
-        return Command_TTS(InName, InCalls, InAtr)
-
-
-class Command_TTS(Command):
-    def ExecuteCommand(self, InChatMessage):
-        if len(InChatMessage.Message) > 0:
-            #self.Processor.TTS.ConvertTTS(InChatMessage.Message)
-            self.Processor.TransmitInstruction("TTS_ConvertTTS", InChatMessage.Message)
-            self.Processor.TransmitInstruction("TTS_PlayTTS", {"UID" : "CommandTTS"})
-
-            self.FinishOnTimer = False
-
-            # GLady Avatar
-            # if self.Processor.LObsInterface.Enabled:
-            #     self.Processor.LObsInterface.SetFilterEnabled("GLadyAvatar", "Silent", False)
-            self.Processor.TransmitInstruction("OBS_SetFilterEnabled", {"Source" : "GLadyAvatar", "Filter" : "Silent", "NewEnabled" : False})
-
-    def FinishExecution(self):
-
-        # if self.Processor.LObsInterface.Enabled:
-        #     self.Processor.LObsInterface.SetFilterEnabled("GLadyAvatar", "Silent", True)
-        self.Processor.TransmitInstruction("OBS_SetFilterEnabled", {"Source": "GLadyAvatar", "Filter": "Silent", "NewEnabled": True})
-        super().FinishExecution()
-
-    def OnProcessorReceivedEventNotification(self, InDataMessage):
-        if InDataMessage.Data["Head"] == "TTS_FinishedPlayingTTS" and InDataMessage.Data["Data"]["UID"] == "CommandTTS":
-            self.FinishExecution()
-
-
-class Command_PlaySound(Command):
-    def ExecuteCommand(self, InChatMessage):
-        self.FinishOnTimer = False
-        self.GifName = ""
-
-        Volume = 1.0
-        if "volume" in self.Atr:
-            Volume = self.Atr["volume"]
-
-        if "file" in self.Atr:
-            #self.Timer = self.Processor.TTS.PlaySound("SFX/" + self.Atr["file"], self.Processor.LConfigController.Options["SFX_Volume"] * Volume)
-            self.Processor.TransmitInstruction("TTS_PlaySFX", {"File" : "SFX/" + self.Atr["file"], "Volume" : Volume, "UID" : "CommandSFX"})
-
-        else:
-            #self.Timer = self.Processor.TTS.PlaySound("SFX/" + self.Name + ".mp3", self.Processor.LConfigController.Options["SFX_Volume"] * Volume)
-            self.Processor.TransmitInstruction("TTS_PlaySFX", {"File": "SFX/" + self.Name + ".mp3", "Volume": Volume, "UID" : "CommandSFX"})
-
-        if "time" in self.Atr:
-            self.Timer = self.Atr["time"]
-
-        if "time_inc" in self.Atr:
-            self.Timer += self.Atr["time_inc"]
-
-        if "obs_gif" in self.Atr:
-            self.GifName = self.Name
-
-            if "obs_gif_name" in self.Atr:
-                self.GifName = self.Atr["obs_gif_name"]
-
-            #self.Processor.LObsInterface.SetItemEnabledByName("GIFscene", self.GifName, True)
-            self.Processor.TransmitInstruction("OBS_SetItemEnabled", {"Scene" : "GIFscene", "Item" : self.GifName, "NewEnabled" : True})
-
-
-    def FinishExecution(self):
-
-        if self.GifName != "":
-            #self.Processor.LObsInterface.SetItemEnabledByName("GIFscene", self.GifName, False)
-            self.Processor.TransmitInstruction("OBS_SetItemEnabled", {"Scene": "GIFscene", "Item": self.GifName, "NewEnabled": False})
-
-        super().FinishExecution()
-
-
-    def OnProcessorReceivedEventNotification(self, InDataMessage):
-        if InDataMessage.Data["Head"] == "TTS_FinishedPlayingSFX" and InDataMessage.Data["Data"]["UID"] == "CommandSFX":
-            self.FinishExecution()
+# def AssignCommand(InName, InCalls, InAtr):
+#
+#     if "sfx" in InAtr:
+#         return Command_PlaySound(InName, InCalls, InAtr)
+#
+#     elif InName == "VOICE":
+#         return Command_TTS(InName, InCalls, InAtr)
+#
+#
+# class Command_TTS(Command):
+#     def ExecuteCommand(self, InChatMessage):
+#         if len(InChatMessage.Message) > 0:
+#             #self.Processor.TTS.ConvertTTS(InChatMessage.Message)
+#             self.Processor.TransmitInstruction("TTS_ConvertTTS", InChatMessage.Message)
+#             self.Processor.TransmitInstruction("TTS_PlayTTS", {"UID" : "CommandTTS"})
+#
+#             self.FinishOnTimer = False
+#
+#             # GLady Avatar
+#             # if self.Processor.LObsInterface.Enabled:
+#             #     self.Processor.LObsInterface.SetFilterEnabled("GLadyAvatar", "Silent", False)
+#             self.Processor.TransmitInstruction("OBS_SetFilterEnabled", {"Source" : "GLadyAvatar", "Filter" : "Silent", "NewEnabled" : False})
+#
+#     def FinishExecution(self):
+#
+#         # if self.Processor.LObsInterface.Enabled:
+#         #     self.Processor.LObsInterface.SetFilterEnabled("GLadyAvatar", "Silent", True)
+#         self.Processor.TransmitInstruction("OBS_SetFilterEnabled", {"Source": "GLadyAvatar", "Filter": "Silent", "NewEnabled": True})
+#         super().FinishExecution()
+#
+#     def OnProcessorReceivedEventNotification(self, InDataMessage):
+#         if InDataMessage.Data["Head"] == "TTS_FinishedPlayingTTS" and InDataMessage.Data["Data"]["UID"] == "CommandTTS":
+#             self.FinishExecution()
+#
+#
+# class Command_PlaySound(Command):
+#     def ExecuteCommand(self, InChatMessage):
+#         self.FinishOnTimer = False
+#         self.GifName = ""
+#
+#         Volume = 1.0
+#         if "volume" in self.Atr:
+#             Volume = self.Atr["volume"]
+#
+#         if "file" in self.Atr:
+#             #self.Timer = self.Processor.TTS.PlaySound("SFX/" + self.Atr["file"], self.Processor.LConfigController.Options["SFX_Volume"] * Volume)
+#             self.Processor.TransmitInstruction("TTS_PlaySFX", {"File" : "SFX/" + self.Atr["file"], "Volume" : Volume, "UID" : "CommandSFX"})
+#
+#         else:
+#             #self.Timer = self.Processor.TTS.PlaySound("SFX/" + self.Name + ".mp3", self.Processor.LConfigController.Options["SFX_Volume"] * Volume)
+#             self.Processor.TransmitInstruction("TTS_PlaySFX", {"File": "SFX/" + self.Name + ".mp3", "Volume": Volume, "UID" : "CommandSFX"})
+#
+#         if "time" in self.Atr:
+#             self.Timer = self.Atr["time"]
+#
+#         if "time_inc" in self.Atr:
+#             self.Timer += self.Atr["time_inc"]
+#
+#         if "obs_gif" in self.Atr:
+#             self.GifName = self.Name
+#
+#             if "obs_gif_name" in self.Atr:
+#                 self.GifName = self.Atr["obs_gif_name"]
+#
+#             #self.Processor.LObsInterface.SetItemEnabledByName("GIFscene", self.GifName, True)
+#             self.Processor.TransmitInstruction("OBS_SetItemEnabled", {"Scene" : "GIFscene", "Item" : self.GifName, "NewEnabled" : True})
+#
+#
+#     def FinishExecution(self):
+#
+#         if self.GifName != "":
+#             #self.Processor.LObsInterface.SetItemEnabledByName("GIFscene", self.GifName, False)
+#             self.Processor.TransmitInstruction("OBS_SetItemEnabled", {"Scene": "GIFscene", "Item": self.GifName, "NewEnabled": False})
+#
+#         super().FinishExecution()
+#
+#
+#     def OnProcessorReceivedEventNotification(self, InDataMessage):
+#         if InDataMessage.Data["Head"] == "TTS_FinishedPlayingSFX" and InDataMessage.Data["Data"]["UID"] == "CommandSFX":
+#             self.FinishExecution()

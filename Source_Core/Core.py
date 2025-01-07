@@ -30,7 +30,7 @@ class CoreApp:
         self.MyPluginManager.InitPlugins()
 
         # Control Server
-        #self.MyControlServer = ControlServer(self, "ControlServer")
+        self.MyControlServer = ControlServer(self, "ControlServer")
 
         # Main Loop
         self.MyLogger.NewLogSegment("RUNTIME")
@@ -43,7 +43,6 @@ class CoreApp:
     def MainLoop(self):
         try:
             while True:
-
                 # Delta Time
                 t = time.time()
                 self.DeltaTime = t - self.PreviousTime
