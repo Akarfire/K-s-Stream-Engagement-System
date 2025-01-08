@@ -214,6 +214,7 @@ class InstructionProcessor(CoreComponent_BusConnected):
             Code += L
 
         Code = Code.replace('\n', '').replace(' ', '').replace('\t', '')
+
         # MACRO IMPLEMENTATION
         while '$' in Code:
             MacroStart = Code.index('$')

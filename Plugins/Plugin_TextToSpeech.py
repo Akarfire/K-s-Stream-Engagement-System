@@ -1,11 +1,16 @@
+from logging import exception
 from threading import Event
 
 from cx_Freeze import Executable
+from numpy.f2py.symbolic import Language
 
 from Source_Core import PluginImpl
 from gtts import gTTS
 import pygame
 from pathlib import Path
+import pyttsx3
+import librosa
+import soundfile
 
 
 class TextToSpeech(PluginImpl.PluginBase):
@@ -27,6 +32,8 @@ class TextToSpeech(PluginImpl.PluginBase):
         self.AddOption("TTS_Volume", 1.0)
         self.AddOption("SFX_Volume", 1.0)
 
+        self.TTS_FilePath = "TmpFiles/TTS_Audio.mp3"
+
 
     def InitPlugin(self):
         super().InitPlugin()
@@ -45,6 +52,7 @@ class TextToSpeech(PluginImpl.PluginBase):
         # Create SFX Directory
         Path("SFX").mkdir(parents=True, exist_ok=True)
         Path("TmpFiles").mkdir(parents=True, exist_ok=True)
+
 
 
     def DeletePlugin(self):
@@ -88,7 +96,7 @@ class TextToSpeech(PluginImpl.PluginBase):
 
         if InDataMessage.DataType == "IN":
             if InDataMessage.Data["Head"] == "TTS_ConvertTTS":
-                self.ConvertTTS(InDataMessage.Data["Data"]["Text"])
+                self.ConvertTTS(InDataMessage.Data["Data"]["Text"], InDataMessage.Data["Data"]["Engine"], InDataMessage.Data["Data"])
 
             elif InDataMessage.Data["Head"] == "TTS_PlayTTS":
                 Time = self.PlayTTS()
@@ -100,24 +108,84 @@ class TextToSpeech(PluginImpl.PluginBase):
 
 
     # Converts text to speech using gTTS
-    def ConvertTTS(self, txt, lg='en'):
+    def ConvertTTS(self, InText, InEngine, InAllParameters):
 
-        if self.GetOption("Use_TTS") and len(txt) > 0:
+        Text = InText.replace('\n', ' ').replace('\r', ' ')
+        if self.GetOption("Use_TTS") and len(InText) > 0:
             try:
-                # Inits gTTS and converts
-                MyTTS = gTTS(text=txt, lang=lg, slow=False)
 
-                # Saves output to TTS_Audio.mp3
-                MyTTS.save("TmpFiles/TTS_Audio.mp3")
-            except:
-                self.LLogger.LogError("Failed to TTS: " + txt)
+                # GTTS
+                if InEngine == "GTTS":
+                    self.ConvertGTTS(Text, InAllParameters)
+
+                elif InEngine == "PyTTS":
+                    self.ConvertPyTTS(Text, InAllParameters)
+
+                self.ProcessTTSAudio(InAllParameters)
+
+            except Exception as e:
+                self.LLogger.LogError(f"Failed to TTS: '{Text}' with Engine '{InEngine}' and parameters: {str(InAllParameters)}! :: {str(e)}")
                 pass
+
+
+    def ConvertGTTS(self, InText, InAllParameters):
+
+        Language = "en"
+        if "Language" in InAllParameters:
+            Language = InAllParameters["Language"]
+
+        # Inits gTTS and converts
+        MyTTS = gTTS(text=InText, lang=Language, slow=False)
+
+        # Saves output to TTS_Audio.mp3
+        MyTTS.save(self.TTS_FilePath)
+
+
+    def ConvertPyTTS(self, InText, InAllParameters):
+
+        Converter = pyttsx3.init()
+
+        Rate = 200
+        if "Rate" in InAllParameters:
+            Rate = InAllParameters["Rate"]
+
+        Volume = 1
+        if "Volume" in InAllParameters:
+            Volume = InAllParameters["Volume"]
+
+        Converter.setProperty("rate", Rate)
+        Converter.setProperty("volume", Volume)
+
+        VoiceID = 1
+        if "VoiceID" in InAllParameters:
+            VoiceID = InAllParameters["VoiceID"]
+
+        Voices = Converter.getProperty("voices")
+        Converter.setProperty("voice", Voices[VoiceID].id)
+
+        Converter.save_to_file(InText, self.TTS_FilePath)
+        Converter.runAndWait()
+
+
+    def ProcessTTSAudio(self, InAllParameters):
+
+        # Pitch Shift
+
+        PitchShiftSteps = 0
+        if "PitchShiftSteps" in InAllParameters:
+            PitchShiftSteps = InAllParameters["PitchShiftSteps"]
+
+        if PitchShiftSteps != 0:
+
+            Y, Sr = librosa.load(self.TTS_FilePath)
+            New_Y = librosa.effects.pitch_shift(Y, sr=Sr, n_steps=PitchShiftSteps, bins_per_octave=24)
+            soundfile.write(self.TTS_FilePath, New_Y, Sr)
 
 
     def PlayTTS(self):
 
         if self.GetOption("Use_TTS"):
-            # Plays last converetd TTS file
+            # Plays last convereted TTS file
             return self.PlaySound("TmpFiles/TTS_Audio.mp3", self.GetOption("TTS_Volume"))
 
 
