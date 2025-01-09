@@ -31,7 +31,7 @@ class InstructionProcessor(CoreComponent_BusConnected):
 
         # Registering Core instructions
         self.RegisterInstruction("FLOW_RunSection_IF_EQ", "CORE")
-        self.RegisterInstruction("FLOW_RunSection_IF_NotEQ", "CORE")
+        self.RegisterInstruction("FLOW_RunSection_IF_NEQ", "CORE")
         self.RegisterInstruction("DATA_Store", "CORE")
 
         # Global variable storage
@@ -79,7 +79,7 @@ class InstructionProcessor(CoreComponent_BusConnected):
                     f"INSTRUCTION FLOW: {InInstruction} failed to execute: invalid arguments!")
 
         # Execute section if L != R
-        elif InInstruction == "FLOW_RunSection_IF_NotEQ":
+        elif InInstruction == "FLOW_RunSection_IF_NEQ":
 
             if not "Code" in InRuntimeParameters:
                 self.LLogger.LogError(
@@ -124,6 +124,7 @@ class InstructionProcessor(CoreComponent_BusConnected):
         elif InDataMessage.DataType == "CB" and InDataMessage.Data["Head"] == "RequestAllOptions":
             for Option in InDataMessage.Data["Data"]["Options"]:
                 self.GlobalVariables["OPTION_" + Option] = InDataMessage.Data["Data"]["Options"][Option]
+            print("GLOBAL VARIABLES: ", self.GlobalVariables)
 
         elif InDataMessage.DataType == "RE" and InDataMessage.Data["Head"] == "INSTRUCTIONS_ParseInstructionCode":
             ParsedCode = self.ParseInstructionCode(InDataMessage.Data["Data"]["Code"])
@@ -133,6 +134,8 @@ class InstructionProcessor(CoreComponent_BusConnected):
 
 
     def RunInstruction(self, InInstruction, InArguments, CallerAddress, InRuntimeParameters):
+
+        #self.LLogger.LogStatus(f"INSTRUCTIONS: Running {InInstruction}, with Arguments: {str(InArguments)}, called by {CallerAddress}", False)
 
         try:
             if not InInstruction in self.Instructions:

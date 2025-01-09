@@ -13,7 +13,7 @@ class EventConfiguration:
 
         self.Duration = 1.0
         self.MaxAtSameMoment = 1
-        self.UpdateFrequency = 1
+        self.UpdateFrequency = 10
 
         self.Instructions = dict()
 

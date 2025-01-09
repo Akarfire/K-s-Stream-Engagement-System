@@ -50,7 +50,7 @@ class CoreApp:
 
                 # Runtime Logic
                 self.MyPluginManager.UpdatePlugins(self.DeltaTime)
-                #self.MyControlServer.UpdateControlServer()
+                self.MyControlServer.UpdateControlServer()
 
                 # Sleep
                 time.sleep(self.TimeBetweenFrames)

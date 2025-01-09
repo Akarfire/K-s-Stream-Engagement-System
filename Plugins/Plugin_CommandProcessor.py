@@ -157,7 +157,12 @@ class CommandProcessor(PluginImpl.PluginBase):
 
         for p in Priorities:
             for com in Commands[p]:
-                self.CommandQueue.put(QueuedCommand(com, NewChatMessage))
+
+                if (not "ControlServerOnly" in self.Commands[com].Atr) or (InChatMessage.Author == "CONTROL SERVER"):
+                    self.CommandQueue.put(QueuedCommand(com, NewChatMessage))
+
+                else:
+                    self.LLogger.LogStatus(f"COMMANDS: Access Rights Violation! {com} is Control Server Only!")
 
 
     def ScanMessageForCommands(self, Message):
