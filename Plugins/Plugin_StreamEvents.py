@@ -3,6 +3,9 @@ import queue
 from Source_Core import PluginImpl
 import random
 
+from Source_Core.InstructionProcessor import RuntimeParameter
+
+
 # Contains parameters of an event, that describe its behavior
 class EventConfiguration:
 
@@ -33,7 +36,12 @@ class Event:
     def ExecuteInstructions(self, InCodeBlock):
 
         if InCodeBlock in self.Configuration.Instructions:
-            self.EventProcessor.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions": self.Configuration.Instructions[InCodeBlock]["Instructions"], "RuntimeParameters": self.CachedParameters})
+
+            RuntimeParameters = dict()
+            for Parameter in self.CachedParameters:
+                RuntimeParameters[ "EVENT_" + Parameter ] = self.CachedParameters[Parameter]
+
+            self.EventProcessor.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions": self.Configuration.Instructions[InCodeBlock]["Instructions"], "RuntimeParameters": RuntimeParameters})
 
 
     def StartEvent(self, InParameters = None):
@@ -150,13 +158,19 @@ class StreamEvents(PluginImpl.PluginBase):
 
             # Calling Events
             if InDataMessage.Data["Head"] == "EVENTS_CallEvent":
-                self.CallEvent(InDataMessage.Data["Data"]["EventName"], dict())
+                self.CallEvent(InDataMessage.Data["Data"]["EventName"], InDataMessage.Data["Data"])
 
             # Pause events
             if InDataMessage.Data["Head"] == "EVENTS_PauseEvent":
                 if InDataMessage.Data["Data"]["EventName"] in self.ActiveEvents:
-                    for UEvent in self.ActiveEvents[InDataMessage.Data["Data"]["EventName"]]:
-                        self.ActiveEvents[InDataMessage.Data["Data"]["EventName"]][UEvent].PauseEvent()
+
+                    if "UniqueName" in InDataMessage.Data["Data"]:
+                        if InDataMessage.Data["Data"]["UniqueName"] in self.ActiveEvents[InDataMessage.Data["Data"]["EventName"]]:
+                            self.ActiveEvents[InDataMessage.Data["Data"]["EventName"]][InDataMessage.Data["Data"]["UniqueName"]].PauseEvent()
+
+                    else:
+                        for UEvent in self.ActiveEvents[InDataMessage.Data["Data"]["EventName"]]:
+                            self.ActiveEvents[InDataMessage.Data["Data"]["EventName"]][UEvent].PauseEvent()
 
 
         elif InDataMessage.DataType == "CB":

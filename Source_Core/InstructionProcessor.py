@@ -32,6 +32,14 @@ class InstructionProcessor(CoreComponent_BusConnected):
         # Registering Core instructions
         self.RegisterInstruction("FLOW_RunSection_IF_EQ", "CORE")
         self.RegisterInstruction("FLOW_RunSection_IF_NotEQ", "CORE")
+        self.RegisterInstruction("DATA_Store", "CORE")
+
+        # Global variable storage
+        self.GlobalVariables = dict()
+
+        # Requesting Core optins to write them into Global variable storage
+        CoreOptionsRequestMessage = DataMessage("Config", self.Address, "RE", { "Head" : "RequestAllOptions", "Data" : {} })
+        self.TransmitData(CoreOptionsRequestMessage)
 
 
     def RegisterInstruction(self, InInstructionName, InExecutorAddress, InMeta = None):
@@ -71,7 +79,7 @@ class InstructionProcessor(CoreComponent_BusConnected):
                     f"INSTRUCTION FLOW: {InInstruction} failed to execute: invalid arguments!")
 
         # Execute section if L != R
-        if InInstruction == "FLOW_RunSection_IF_NotEQ":
+        elif InInstruction == "FLOW_RunSection_IF_NotEQ":
 
             if not "Code" in InRuntimeParameters:
                 self.LLogger.LogError(
@@ -91,6 +99,13 @@ class InstructionProcessor(CoreComponent_BusConnected):
                 self.LLogger.LogError(
                     f"INSTRUCTION FLOW: {InInstruction} failed to execute: invalid arguments!")
 
+        # Stores all arguments to Global Variable Storage
+        elif InInstruction == "DATA_Store":
+
+            for Argument in InArguments:
+                self.GlobalVariables[Argument] = InArguments[Argument]
+
+
 
     def ReceivedData(self, InDataMessage):
 
@@ -102,18 +117,13 @@ class InstructionProcessor(CoreComponent_BusConnected):
             elif InDataMessage.Data["Head"] in self.Instructions:
                 self.RunInstruction(InDataMessage.Data["Head"], InDataMessage.Data["Data"], InDataMessage.SenderAddress, {})
 
-                # Executor = self.Instructions[InDataMessage.Data["Head"]]
-                #
-                # if Executor == "CORE":
-                #     self.ExecuteCoreInstruction(InDataMessage.Data["Head"], InDataMessage.Data["Data"])
-                #
-                # else:
-                #     InstructionCallMessage = DataMessage(Executor, InDataMessage.SenderAddress, "IN", InDataMessage.Data)
-                #     self.TransmitData(InstructionCallMessage)
-
 
         elif InDataMessage.DataType == "CB" and InDataMessage.Data["Head"] == "PluginConfigRequest":
             self.ParseMacroCode(InDataMessage.Data["Data"]["ConfigLines"])
+
+        elif InDataMessage.DataType == "CB" and InDataMessage.Data["Head"] == "RequestAllOptions":
+            for Option in InDataMessage.Data["Data"]["Options"]:
+                self.GlobalVariables["OPTION_" + Option] = InDataMessage.Data["Data"]["Options"][Option]
 
         elif InDataMessage.DataType == "RE" and InDataMessage.Data["Head"] == "INSTRUCTIONS_ParseInstructionCode":
             ParsedCode = self.ParseInstructionCode(InDataMessage.Data["Data"]["Code"])
@@ -161,6 +171,10 @@ class InstructionProcessor(CoreComponent_BusConnected):
             if type(InArguments[Arg]) == RuntimeParameter:
                 if InArguments[Arg].Name in InRuntimeParameters:
                     OutArguments[Arg] = InRuntimeParameters[InArguments[Arg].Name]
+
+                elif InArguments[Arg].Name in self.GlobalVariables:
+                    OutArguments[Arg] = self.GlobalVariables[InArguments[Arg].Name]
+
                 else:
                     OutArguments[Arg] = None
 

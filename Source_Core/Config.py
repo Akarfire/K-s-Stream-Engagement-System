@@ -31,17 +31,24 @@ class ConfigController(CoreComponent_BusConnected):
 
     def ReceivedData(self, InDataMessage):
 
-        if InDataMessage.DataType == "RE" and InDataMessage.Data["Head"] == "PluginConfigRequest":
-            ConfigSection = InDataMessage.Data["Data"]["ConfigSection"]
+        if InDataMessage.DataType == "RE":
 
-            if ConfigSection != "":
-                if ConfigSection in self.PluginConfigSegments:
-                    CallBackMessage = DataMessage(InDataMessage.SenderAddress, self.Address, "CB", {"Head" : "PluginConfigRequest", "Data" : {"ConfigLines" : self.PluginConfigSegments[ConfigSection]}})
-                    self.TransmitData(CallBackMessage)
+            if InDataMessage.Data["Head"] == "PluginConfigRequest":
+                ConfigSection = InDataMessage.Data["Data"]["ConfigSection"]
 
-                else:
-                    InitConfigRequestMessage = DataMessage(InDataMessage.SenderAddress, self.Address, "RE", {"Head" : "PluginInitConfigRequest", "Data" : {}})
-                    self.TransmitData(InitConfigRequestMessage)
+                if ConfigSection != "":
+                    if ConfigSection in self.PluginConfigSegments:
+                        CallBackMessage = DataMessage(InDataMessage.SenderAddress, self.Address, "CB", {"Head" : "PluginConfigRequest", "Data" : {"ConfigLines" : self.PluginConfigSegments[ConfigSection]}})
+                        self.TransmitData(CallBackMessage)
+
+                    else:
+                        InitConfigRequestMessage = DataMessage(InDataMessage.SenderAddress, self.Address, "RE", {"Head" : "PluginInitConfigRequest", "Data" : {}})
+                        self.TransmitData(InitConfigRequestMessage)
+
+            elif InDataMessage.Data["Head"] == "RequestAllOptions":
+                CallbackMessage = DataMessage(InDataMessage.SenderAddress, self.Address, "CB", {"Head" : "RequestAllOptions", "Data" : { "Options" : self.Options }})
+                self.TransmitData(CallbackMessage)
+
 
         elif InDataMessage.DataType == "CB" and InDataMessage.Data["Head"] == "PluginInitConfigRequest":
             self.InitConfigSection(InDataMessage.Data["Data"]["ConfigSectionName"], InDataMessage.Data["Data"]["ConfigLines"])
