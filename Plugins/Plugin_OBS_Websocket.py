@@ -18,7 +18,7 @@ class ObsWebsocket(PluginImpl.PluginBase):
         self.Address = "ObsWebsocket"
         self.ConfigSection = "OBS"
         self.Subscriptions = []
-        self.Instructions = [ ("OBS_SetFilterEnabled", {}), ("OBS_SetItemEnabled", {}) ]
+        self.Instructions = [ ("OBS_SetFilterEnabled", {}), ("OBS_SetItemEnabled", {}), ("OBS_SetInputSettings", {}) ]
         self.Enabled = False
 
         self.ObsAuth = ObsAuthData("localhost", 4455, "password")
@@ -78,6 +78,12 @@ class ObsWebsocket(PluginImpl.PluginBase):
                     Data = InDataMessage.Data["Data"]
                     self.SetItemEnabledByName(Data["Scene"], Data["Item"], Data["NewEnabled"])
 
+                elif InDataMessage.Data["Head"] == "OBS_SetInputSettings":
+                    Data = InDataMessage.Data["Data"]
+                    InputSettings = Data.copy()
+                    InputSettings.pop("InputName")
+                    self.SetInputSettings(Data["InputName"], InputSettings)
+
 
     def GenerateAuthString(self, Challenge, Salt):
 
@@ -109,6 +115,43 @@ class ObsWebsocket(PluginImpl.PluginBase):
         self.ObsWS.send(json.dumps(Payload))
         Response = self.ObsWS.recv()
         self.LLogger.LogObsResponse(json.loads(Response))
+
+
+    def ReadConfigData(self, InConfigFileLines):
+
+        self.ReadOptions(InConfigFileLines)
+
+        Path = "Config/OBS_AUTH.txt"
+        self.LLogger.LogStatus("Reading OBS data at: " + Path)
+        try:
+            ObsDataFile = open(Path)
+            DataFound = True
+
+        except:
+            self.LLogger.LogStatus(f"'{Path}' doesn't exist, creating now")
+            ObsDataFile = open(Path, 'w')
+            ObsDataFile.write("host: localhost\nport: 4455\npassword: ")
+            ObsDataFile.close()
+
+            DataFound = False
+            pass
+
+        if DataFound:
+            ObsAuthDataLines = ObsDataFile.readlines()
+
+            if len(ObsAuthDataLines) >= 3:
+
+                try:
+                    self.ObsAuth.host = ObsAuthDataLines[0].replace("host: ", '')
+                    self.ObsAuth.port = int(ObsAuthDataLines[1].replace("port: ", ''))
+                    self.ObsAuth.password = ObsAuthDataLines[2].replace("password: ", '')
+
+                    self.OBS_DataFound = True
+
+                except:
+                    self.LLogger.LogError("Invalid Obs Auth Data")
+                    self.OBS_DataFound = False
+                    pass
 
 
     def SendRequest(self, RequestType, RequestID, RequestData):
@@ -175,38 +218,11 @@ class ObsWebsocket(PluginImpl.PluginBase):
         self.LLogger.LogObsResponse(Response)
 
 
-    def ReadConfigData(self, InConfigFileLines):
+    def SetInputSettings(self, InInputName, InInputSettings):
 
-        self.ReadOptions(InConfigFileLines)
+        Response = self.SendRequest("SetInputSettings", "SetInputSettings", {
+            "inputName" : InInputName,
+            "inputSettings" : InInputSettings
+        })
 
-        Path = "Config/OBS_AUTH.txt"
-        self.LLogger.LogStatus("Reading OBS data at: " + Path)
-        try:
-            ObsDataFile = open(Path)
-            DataFound = True
-
-        except:
-            self.LLogger.LogStatus(f"'{Path}' doesn't exist, creating now")
-            ObsDataFile = open(Path, 'w')
-            ObsDataFile.write("host: localhost\nport: 4455\npassword: ")
-            ObsDataFile.close()
-
-            DataFound = False
-            pass
-
-        if DataFound:
-            ObsAuthDataLines = ObsDataFile.readlines()
-
-            if len(ObsAuthDataLines) >= 3:
-
-                try:
-                    self.ObsAuth.host = ObsAuthDataLines[0].replace("host: ", '')
-                    self.ObsAuth.port = int(ObsAuthDataLines[1].replace("port: ", ''))
-                    self.ObsAuth.password = ObsAuthDataLines[2].replace("password: ", '')
-
-                    self.OBS_DataFound = True
-
-                except:
-                    self.LLogger.LogError("Invalid Obs Auth Data")
-                    self.OBS_DataFound = False
-                    pass
+        self.LLogger.LogObsResponse(Response)

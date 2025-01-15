@@ -1,5 +1,6 @@
 import datetime
 from pathlib import Path
+import random
 import Source_Core.Types
 
 class Logger:
@@ -8,13 +9,14 @@ class Logger:
 
         Path("Logs").mkdir(parents=True, exist_ok=True)
         self.Dir = "Logs/"
-        self.FileName = "Log_" + datetime.datetime.now().strftime("%I_%M%p - %B_%d_%Y") + ".txt"
+        self.FileName = "Log_" + datetime.datetime.now().strftime("%I_%M%p - %B_%d_%Y -- ") + str(random.randint(10000, 99999)) + ".txt"
 
 
     def LogString(self, InString, Print = True, Date = True):
 
         if Date:
-            Time = datetime.datetime.now().strftime("%I:%M%p - %B_%d_%Y")
+            Now = datetime.datetime.now()
+            Time = f"{Now.hour:02d}:{Now.minute:02d}:{Now.second:02d}.{str(Now.microsecond)[:2]}"
             LogLine = Time + "  :  " + InString
 
         else:

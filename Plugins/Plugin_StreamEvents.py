@@ -61,7 +61,6 @@ class Event:
         if self.Active:
 
             self.ExecuteInstructions("BLOCK_Update")
-
             self.Timer -= InDeltaTime
             if self.Timer <= 0:
                 self.FinishEvent()
@@ -89,6 +88,8 @@ class MidParsingEventData():
         self.Instructions = dict()
 
 
+
+
 # Actual Plugin
 class StreamEvents(PluginImpl.PluginBase):
 
@@ -98,7 +99,7 @@ class StreamEvents(PluginImpl.PluginBase):
         self.Address = "StreamEvents"
         self.ConfigSection = "Events"
         self.Subscriptions = []
-        self.Instructions = [("EVENTS_CallEvent", {}), ("EVENTS_PauseEvent", {})]
+        self.Instructions = [("EVENTS_CallEvent", {}), ("EVENTS_PauseEvent", {}), ("EVENTS_FinishEvent", {})]
 
         # < Unique Name - Event Configuration >
         self.EventsLib = dict()
@@ -140,7 +141,8 @@ class StreamEvents(PluginImpl.PluginBase):
                 # Handling update frequency
                 self.ActiveEventsDeltaTimer[UniqueEvent] += DeltaSeconds
                 if self.ActiveEventsDeltaTimer[UniqueEvent] > ( 1 / self.EventsLib[GeneralEvent].UpdateFrequency):
-                    self.ActiveEvents[GeneralEvent][UniqueEvent].UpdateEvent(DeltaSeconds)
+                    self.ActiveEvents[GeneralEvent][UniqueEvent].UpdateEvent(self.ActiveEventsDeltaTimer[UniqueEvent])
+                    self.ActiveEventsDeltaTimer[UniqueEvent] = 0
 
         # Process finished events
         for GEvent in self.FinishedEvents:
@@ -162,15 +164,23 @@ class StreamEvents(PluginImpl.PluginBase):
 
             # Pause events
             if InDataMessage.Data["Head"] == "EVENTS_PauseEvent":
-                if InDataMessage.Data["Data"]["EventName"] in self.ActiveEvents:
+                if "UniqueName" in InDataMessage.Data["Data"]:
+                    if InDataMessage.Data["Data"]["UniqueName"] in self.ActiveEvents[InDataMessage.Data["Data"]["GeneralName"]]:
+                        self.ActiveEvents[InDataMessage.Data["Data"]["GeneralName"]][InDataMessage.Data["Data"]["UniqueName"]].PauseEvent()
 
-                    if "UniqueName" in InDataMessage.Data["Data"]:
-                        if InDataMessage.Data["Data"]["UniqueName"] in self.ActiveEvents[InDataMessage.Data["Data"]["EventName"]]:
-                            self.ActiveEvents[InDataMessage.Data["Data"]["EventName"]][InDataMessage.Data["Data"]["UniqueName"]].PauseEvent()
+                else:
+                    for UEvent in self.ActiveEvents[InDataMessage.Data["Data"]["GeneralName"]]:
+                        self.ActiveEvents[InDataMessage.Data["Data"]["GeneralName"]][UEvent].PauseEvent()
 
-                    else:
-                        for UEvent in self.ActiveEvents[InDataMessage.Data["Data"]["EventName"]]:
-                            self.ActiveEvents[InDataMessage.Data["Data"]["EventName"]][UEvent].PauseEvent()
+            elif InDataMessage.Data["Head"] == "EVENTS_FinishEvent":
+                if "UniqueName" in InDataMessage.Data["Data"]:
+                    if InDataMessage.Data["Data"]["UniqueName"] in self.ActiveEvents[InDataMessage.Data["Data"]["GeneralName"]]:
+                        self.ActiveEvents[InDataMessage.Data["Data"]["GeneralName"]][InDataMessage.Data["Data"]["UniqueName"]].FinishEvent()
+
+                else:
+                    for UEvent in self.ActiveEvents[InDataMessage.Data["Data"]["GeneralName"]]:
+                        self.ActiveEvents[InDataMessage.Data["Data"]["GeneralName"]][UEvent].FinishEvent()
+
 
 
         elif InDataMessage.DataType == "CB":
@@ -189,7 +199,7 @@ class StreamEvents(PluginImpl.PluginBase):
             if InConfigFileLines[i] != '':
 
                 if InConfigFileLines[i].replace(' ', '') == '-':
-                    self.ProcessCommandLines(CurrentLines)
+                    self.ProcessEventLines(CurrentLines)
                     CurrentLines = []
 
                 else:
@@ -198,10 +208,10 @@ class StreamEvents(PluginImpl.PluginBase):
             i += 1
 
         if len(CurrentLines) > 0:
-            self.ProcessCommandLines(CurrentLines)
+            self.ProcessEventLines(CurrentLines)
 
 
-    def ProcessCommandLines(self, EventLines):
+    def ProcessEventLines(self, EventLines):
 
         Name = ""
         Atr = {}
@@ -276,7 +286,7 @@ class StreamEvents(PluginImpl.PluginBase):
 
 
     def InitPluginConfig(self):
-        return self.InitOptionsConfig()
+        return ""
 
 
     def CallEvent(self, InGeneralEventName, InParameters):

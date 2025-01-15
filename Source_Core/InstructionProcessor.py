@@ -124,7 +124,6 @@ class InstructionProcessor(CoreComponent_BusConnected):
         elif InDataMessage.DataType == "CB" and InDataMessage.Data["Head"] == "RequestAllOptions":
             for Option in InDataMessage.Data["Data"]["Options"]:
                 self.GlobalVariables["OPTION_" + Option] = InDataMessage.Data["Data"]["Options"][Option]
-            print("GLOBAL VARIABLES: ", self.GlobalVariables)
 
         elif InDataMessage.DataType == "RE" and InDataMessage.Data["Head"] == "INSTRUCTIONS_ParseInstructionCode":
             ParsedCode = self.ParseInstructionCode(InDataMessage.Data["Data"]["Code"])
@@ -409,7 +408,7 @@ class InstructionProcessor(CoreComponent_BusConnected):
             ArgumentValue = float(ArgumentValueStr.replace('[f]', ''))
 
         elif "[s]" in ArgumentValueStr:
-            ArgumentValue = ArgumentValueStr.replace('[s]', '')
+            ArgumentValue = ArgumentValueStr.replace('[s]', '').replace('%_', ' ')
 
         else:
             ArgumentValue = RuntimeParameter(ArgumentValueStr)

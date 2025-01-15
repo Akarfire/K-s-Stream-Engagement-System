@@ -1,6 +1,6 @@
 from Source_Core import PluginImpl
 import queue
-from Source_Core.Types import InstructionCodeHeader
+from Source_Core.Types import InstructionCodeHeader, ChatMessage
 
 
 class Command:
@@ -63,6 +63,8 @@ class QueuedCommand:
 
 
 
+
+
 class CommandProcessor(PluginImpl.PluginBase):
 
     def __init__(self, InPluginManager):
@@ -71,7 +73,7 @@ class CommandProcessor(PluginImpl.PluginBase):
         self.Address = "CommandProcessor"
         self.ConfigSection = "Commands"
         self.Subscriptions = []
-        self.Instructions = [ ("COMMAND_ProcessMessageCommands", {}), ("COMMAND_Finish", {}) ]
+        self.Instructions = [ ("COMMAND_ProcessMessageCommands", {}), ("COMMAND_Finish", {}), ("COMMAND_ExecuteCommand", {}) ]
 
         self.Commands = dict()
         self.CommandCalls = {}
@@ -130,6 +132,16 @@ class CommandProcessor(PluginImpl.PluginBase):
             elif InDataMessage.Data["Head"] == "COMMAND_Finish":
                 self.ActiveCommand.FinishExecution()
                 self.OnCurrentCommandFinished()
+
+            elif InDataMessage.Data["Head"] == "COMMAND_ExecuteCommand":
+
+                Message = ""
+                if "Message" in InDataMessage.Data["Data"]:
+                    Message = InDataMessage.Data["Data"]["Message"]
+
+                CommandChatMessage = ChatMessage("Instruction", "-", "Instructions", Message)
+                self.CommandQueue.put(QueuedCommand(InDataMessage.Data["Data"]["Command"], CommandChatMessage))
+
 
         elif InDataMessage.DataType == "CB":
 

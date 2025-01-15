@@ -42,6 +42,13 @@ class PluginBase:
         self.MyPluginManager.ReceivedData(EventDataMessage)
 
     def TransmitInstruction(self, InInstructionName, InArguments):
+
+        if (not "RuntimeParameters" in InArguments) or type(InArguments["RuntimeParameters"]) != dict:
+            InArguments["RuntimeParameters"] = dict()
+
+        for Option in self.Config["Options"]:
+            InArguments["RuntimeParameters"][Option] = self.Config["Options"][Option]
+
         InstructionMessage = DataMessage("Instructions", self.Address, "IN", {"Head" : InInstructionName, "Data" : InArguments})
         self.MyPluginManager.ReceivedData(InstructionMessage)
 
