@@ -37,7 +37,7 @@ class UtilityInstructions(PluginImpl.PluginBase):
             if Delayed["Time"] <= 0:
 
                 Finished.append(Delayed)
-                self.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions" : Delayed["Code"][Delayed["Section"]], "RuntimeParameters" : Delayed["RuntimeParameters"]})
+                self.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions" : Delayed["Code"][Delayed["Section"]]["Instructions"], "RuntimeParameters" : Delayed["RuntimeParameters"]})
 
         for F in Finished:
             self.SectionDelayTimers.remove(F)
@@ -73,7 +73,7 @@ class UtilityInstructions(PluginImpl.PluginBase):
 
         if not InSectionName in InRuntimeParameters["Code"]:
             self.LLogger.LogError(
-                f"TILITY INSTRUCTIONS: 'UFLOW_RunSection_Delayed' failed to execute: invalid code section: {InSectionName}!")
+                f"UTILITY INSTRUCTIONS: 'UFLOW_RunSection_Delayed' failed to execute: invalid code section: {InSectionName}!")
             return
 
         self.SectionDelayTimers.append( { "Time" : InDelayTime, "Code" : InRuntimeParameters["Code"], "Section" : InSectionName, "RuntimeParameters" :  InRuntimeParameters} )

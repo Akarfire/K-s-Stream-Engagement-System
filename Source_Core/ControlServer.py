@@ -25,7 +25,8 @@ class ControlServer(CoreComponent_BusConnected):
         while not self.TaskQueue.empty():
             Task = self.TaskQueue.get()
 
-            CMsg = ChatMessage("CONTROL SERVER", "-", "CONTROL SERVER", str(Task))
+            Message = str(Task)[2:-1].replace('\\n', '')
+            CMsg = ChatMessage("CONTROL SERVER", "-", "CONTROL SERVER", Message)
             InstructionCallMessage = DataMessage("Instructions", self.Address, "IN", {"Head" : "COMMAND_ProcessMessageCommands", "Data" : {"Message" : CMsg, "WasFiltered" : False}})
             self.TransmitData(InstructionCallMessage)
 

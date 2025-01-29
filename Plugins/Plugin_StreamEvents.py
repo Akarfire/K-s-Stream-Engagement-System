@@ -33,13 +33,20 @@ class Event:
         self.Active = False
 
 
-    def ExecuteInstructions(self, InCodeBlock):
+    def ExecuteInstructions(self, InCodeBlock, InAdditionalRuntimeParameters = None):
 
         if InCodeBlock in self.Configuration.Instructions:
 
             RuntimeParameters = dict()
+
+            if InAdditionalRuntimeParameters != None:
+                for Param in InAdditionalRuntimeParameters:
+                    RuntimeParameters[Param] = InAdditionalRuntimeParameters[Param]
+
             for Parameter in self.CachedParameters:
-                RuntimeParameters[ "EVENT_" + Parameter ] = self.CachedParameters[Parameter]
+                RuntimeParameters[ "STREAMEVENT_" + Parameter ] = self.CachedParameters[Parameter]
+
+            RuntimeParameters["Code"] = self.Configuration.Instructions
 
             self.EventProcessor.TransmitInstruction("INSTRUCTIONS_InterpretInstructions", {"Instructions": self.Configuration.Instructions[InCodeBlock]["Instructions"], "RuntimeParameters": RuntimeParameters})
 
@@ -51,8 +58,8 @@ class Event:
 
         if InParameters != None:
             self.CachedParameters = InParameters.copy()
-        self.CachedParameters["Code"] = self.Configuration.Instructions
 
+        self.EventProcessor.TransmitEvent("STREAMEVENT_OnEventStarted", {"EventName" : self.Name, "UniqueName" : self.UniqueName})
         self.ExecuteInstructions("BLOCK_Start")
 
 
@@ -68,15 +75,27 @@ class Event:
 
     def SetPaused(self, InNewPaused):
         self.Active = not InNewPaused
+        self.EventProcessor.TransmitEvent("STREAMEVENT_OnEventPaused", {"EventName": self.Name, "UniqueName" : self.UniqueName, "NewPaused" : InNewPaused})
 
 
     def FinishEvent(self):
 
         self.Active = False
 
+        self.EventProcessor.TransmitEvent("STREAMEVENT_OnEventFinished", {"EventName": self.Name, "UniqueName" : self.UniqueName})
         self.ExecuteInstructions("BLOCK_End")
 
         self.EventProcessor.OnEventFinished(self.Name, self.UniqueName)
+
+    def OnReceivedEventNotification(self, InDataMessage):
+
+        AdditionalParameters = dict()
+
+        for Dat in InDataMessage.Data["Data"]:
+            AdditionalParameters["STREAMEVENT_" + Dat] = InDataMessage.Data["Data"][Dat]
+
+        self.ExecuteInstructions(["EVENT_" + InDataMessage.Data["Head"]], AdditionalParameters)
+
 
 
 class MidParsingEventData():
@@ -182,13 +201,19 @@ class StreamEvents(PluginImpl.PluginBase):
                         self.ActiveEvents[InDataMessage.Data["Data"]["GeneralName"]][UEvent].FinishEvent()
 
 
-
         elif InDataMessage.DataType == "CB":
 
             if InDataMessage.Data["Head"] == "INSTRUCTIONS_ParseInstructionCode":
                 EventData = self.ParsingQueue.get()
                 EventData.Instructions = InDataMessage.Data["Data"]["Instructions"]
                 self.WriteEvent(EventData)
+
+
+        elif InDataMessage.DataType == "EVN":
+            for GEvent in self.ActiveEvents:
+                for UEvent in self.ActiveEvents[GEvent]:
+                    self.ActiveEvents[GEvent][UEvent].OnReceivedEventNotification(InDataMessage)
+
 
 
     def ReadConfigData(self, InConfigFileLines):
@@ -303,6 +328,10 @@ class StreamEvents(PluginImpl.PluginBase):
 
         NewEventConfiguration = EventConfiguration()
         NewEventConfiguration.Instructions = InEventParsingData.Instructions
+
+        for Section in NewEventConfiguration.Instructions:
+            if NewEventConfiguration.Instructions[Section]["Header"].Type == "EVENT":
+                self.RegisterEventSubscription(NewEventConfiguration.Instructions[Section]["Header"].Name)
 
         if "Duration" in InEventParsingData.Attributes:
             NewEventConfiguration.Duration = InEventParsingData.Attributes["Duration"]
